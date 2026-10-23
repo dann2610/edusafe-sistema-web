@@ -22,9 +22,8 @@ class AuthenticationTest extends TestCase
         return User::factory()->role(RoleSlug::Docente)->create($attrs + ['email' => 'docente@uecrc.test']);
     }
 
-    public function test_la_raiz_redirige_al_login_y_la_pantalla_se_muestra_en_espanol(): void
+    public function test_la_pantalla_de_login_se_muestra_en_espanol(): void
     {
-        $this->get('/')->assertRedirect('/login');
         $this->get('/login')->assertOk()->assertSee('Iniciar sesión')->assertSee('ECU 911')->assertSee('lang="es"', false);
     }
 

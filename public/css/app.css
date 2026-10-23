@@ -227,3 +227,41 @@ body { min-height: 100vh; background-color: var(--tic-sand); }
     .auth-card .card-body { padding: 1.5rem; }
     .page-header h1 { font-size: 1.3rem; }
 }
+
+/* ------------------------------------------------------ Páginas públicas */
+.public-body { background-color: #f7f6f2; }
+.emergency-bar { background: #8f1d14; color: #fff; }
+.emergency-bar a { color: #fff; }
+.public-header { background: #fff; border-bottom: 1px solid var(--tic-border); }
+.public-hero {
+    background: linear-gradient(135deg, var(--tic-navy-dark) 0%, var(--tic-navy) 55%, var(--tic-teal) 100%);
+    color: #fff;
+}
+.public-hero .lead { color: #e3ecf5; }
+.hero-kicker { color: #ffd45c; letter-spacing: .08em; }
+.hero-card { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); border-radius: 1rem; }
+.public-footer { background: #fff; border-top: 1px solid var(--tic-border); color: var(--tic-muted); }
+/* Campo trampa antispam: invisible para personas, presente para robots */
+.hp-field { position: absolute !important; left: -10000px !important; width: 1px; height: 1px; overflow: hidden; }
+
+/* ------------------------------------------------------------- Casos */
+.catalog-card { transition: border-color .15s, box-shadow .15s; }
+.catalog-card:hover { border-color: var(--tic-teal); box-shadow: 0 4px 14px rgba(11,36,64,.08); }
+.case-row-urgent { box-shadow: inset 4px 0 0 #b42318; }
+.timeline { list-style: none; padding-left: 0; margin: 0; position: relative; }
+.timeline::before { content: ""; position: absolute; left: 11px; top: 4px; bottom: 4px; width: 2px; background: var(--tic-border); }
+.timeline li { position: relative; padding: 0 0 1rem 2.1rem; }
+.timeline li::before {
+    content: ""; position: absolute; left: 5px; top: 5px; width: 14px; height: 14px; border-radius: 50%;
+    background: #fff; border: 3px solid var(--tic-teal);
+}
+.timeline li.ev-cerrado::before { border-color: #198754; }
+.timeline li.ev-derivacion::before { border-color: #212529; }
+.timeline li.ev-correccion::before { border-color: #c98a04; }
+.kv dt { font-weight: 400; color: var(--tic-muted); }
+.followup-card { border-left: 3px solid var(--tic-teal); }
+.followup-card.is-correction { border-left-color: #c98a04; }
+.followup-card.is-superseded { opacity: .75; }
+.description-text { white-space: pre-line; overflow-wrap: anywhere; }
+.chart-box { position: relative; height: 280px; }
+.notification-unread { background: var(--tic-teal-soft); }

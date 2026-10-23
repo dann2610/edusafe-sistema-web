@@ -1,8 +1,11 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+/*
+| Tareas programadas. Para ejecutarlas:
+|   - Desarrollo: php artisan schedule:work
+|   - Servidor Linux: cron "* * * * * php /ruta/artisan schedule:run"
+|   - Windows: Programador de tareas ejecutando "php artisan schedule:run" cada minuto
+*/
+Schedule::command('tic:recordatorios-seguimiento')->dailyAt('07:00')->withoutOverlapping();

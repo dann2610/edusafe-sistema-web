@@ -33,7 +33,16 @@
         <span class="d-sm-none">TIC · UES</span>
     </a>
 
-    <div class="ms-auto dropdown">
+    @php $unread = $user->unreadNotifications()->count(); @endphp
+    <a href="{{ route('notifications.index') }}" class="btn btn-link text-body position-relative ms-auto me-1 me-md-3 p-2"
+       aria-label="Notificaciones{{ $unread ? ': '.$unread.' sin leer' : '' }}">
+        <i class="bi bi-bell fs-5" aria-hidden="true"></i>
+        @if ($unread)
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill text-bg-danger" style="font-size:.65rem" aria-hidden="true">{{ $unread > 99 ? '99+' : $unread }}</span>
+        @endif
+    </a>
+
+    <div class="dropdown">
         <button class="btn btn-link text-body text-decoration-none d-flex align-items-center gap-2 p-1"
                 type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Menú de la cuenta">
             <span class="user-avatar" aria-hidden="true">{{ $initials }}</span>

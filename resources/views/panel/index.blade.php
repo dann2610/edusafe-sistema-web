@@ -1,26 +1,22 @@
 <x-layouts.app title="Inicio" heading="Hola, {{ $user->name }}"
                 lead="{{ $user->role?->name }}{{ $user->externalEntity ? ' · '.$user->externalEntity->name : '' }}">
+    @if ($quick)
+        <x-slot:actions>
+            @foreach (array_slice($quick, 0, 3) as [$label, $icon, $url, $class])
+                <a href="{{ $url }}" class="btn {{ $class }}"><i class="bi {{ $icon }} me-1" aria-hidden="true"></i>{{ $label }}</a>
+            @endforeach
+        </x-slot:actions>
+    @endif
 
-    @if ($stats)
+    @if ($cards)
         <div class="row g-3 mb-4">
-            <div class="col-sm-4">
-                <div class="card stat-card h-100"><div class="card-body">
-                    <div class="stat-value">{{ $stats['activos'] }}</div>
-                    <div class="stat-label">Cuentas activas</div>
-                </div></div>
-            </div>
-            <div class="col-sm-4">
-                <div class="card stat-card h-100" style="border-left-color:#8a96a3"><div class="card-body">
-                    <div class="stat-value">{{ $stats['inactivos'] }}</div>
-                    <div class="stat-label">Cuentas desactivadas</div>
-                </div></div>
-            </div>
-            <div class="col-sm-4">
-                <div class="card stat-card h-100" style="border-left-color:#c98a04"><div class="card-body">
-                    <div class="stat-value">{{ $stats['pendientes'] }}</div>
-                    <div class="stat-label">Con contraseña temporal pendiente</div>
-                </div></div>
-            </div>
+            @foreach ($cards as [$label, $value, $url, $color])
+                <div class="col-6 col-md-4 col-xl">
+                    <a href="{{ $url }}" class="card stat-card h-100 text-decoration-none" style="border-left-color:{{ $color }}">
+                        <div class="card-body"><div class="stat-value">{{ $value }}</div><div class="stat-label">{{ $label }}</div></div>
+                    </a>
+                </div>
+            @endforeach
         </div>
     @endif
 
@@ -34,20 +30,11 @@
                     @else
                         <ul class="list-unstyled mb-0">
                             @foreach ($functions as $function)
-                                <li class="d-flex gap-2 py-1">
-                                    <i class="bi bi-check2-circle text-success" aria-hidden="true"></i>{{ $function }}
-                                </li>
+                                <li class="d-flex gap-2 py-1"><i class="bi bi-check2-circle text-success" aria-hidden="true"></i>{{ $function }}</li>
                             @endforeach
                         </ul>
                     @endif
                 </div>
-                @can('usuarios.gestionar')
-                    <div class="card-footer bg-white">
-                        <a href="{{ route('admin.usuarios.index') }}" class="btn btn-primary btn-sm">
-                            <i class="bi bi-people me-1" aria-hidden="true"></i>Gestionar usuarios
-                        </a>
-                    </div>
-                @endcan
             </div>
         </div>
 

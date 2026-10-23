@@ -44,5 +44,10 @@ class AppServiceProvider extends ServiceProvider
 
         // Límite para solicitudes de recuperación de contraseña (por IP)
         RateLimiter::for('password-reset', fn (Request $request) => Limit::perMinute(3)->by($request->ip()));
+
+        // Límite de reportes públicos por IP y por hora (configurable)
+        RateLimiter::for('public-report', fn (Request $request) => Limit::perHour(
+            max(1, (int) config('seguridad_escolar.reportes_publicos.limite_por_hora', 5))
+        )->by($request->ip())->response(fn () => response()->view('errors.429', [], 429)));
     }
 }
