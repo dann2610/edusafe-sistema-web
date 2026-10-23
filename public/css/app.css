@@ -1,0 +1,229 @@
+/* ==========================================================================
+   TIC para Unidades Educativas Seguras — estilos institucionales
+   Base: Bootstrap 5.3 (local). Paleta: azul institucional + verde azulado.
+   Contraste verificado para texto normal (WCAG AA ≥ 4.5:1).
+   ========================================================================== */
+
+:root {
+    --tic-navy: #12355b;
+    --tic-navy-dark: #0b2440;
+    --tic-teal: #0b6e78;
+    --tic-teal-soft: #e3f2f3;
+    --tic-sand: #f5f3ee;
+    --tic-border: #dfe3e8;
+    --tic-text: #1c2733;
+    --tic-muted: #56636f;
+    --tic-sidebar-width: 260px;
+
+    --bs-primary: var(--tic-navy);
+    --bs-primary-rgb: 18, 53, 91;
+    --bs-link-color: var(--tic-teal);
+    --bs-link-color-rgb: 11, 110, 120;
+    --bs-link-hover-color: var(--tic-navy);
+    --bs-body-color: var(--tic-text);
+    --bs-body-bg: #fff;
+    --bs-tertiary-bg: #f8f9fb;
+    --bs-border-color: var(--tic-border);
+    --bs-secondary-color: var(--tic-muted);
+    --bs-font-sans-serif: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+body { min-height: 100vh; background-color: var(--tic-sand); }
+
+.btn-primary {
+    --bs-btn-bg: var(--tic-navy);
+    --bs-btn-border-color: var(--tic-navy);
+    --bs-btn-hover-bg: var(--tic-navy-dark);
+    --bs-btn-hover-border-color: var(--tic-navy-dark);
+    --bs-btn-active-bg: var(--tic-navy-dark);
+    --bs-btn-active-border-color: var(--tic-navy-dark);
+    --bs-btn-disabled-bg: var(--tic-navy);
+    --bs-btn-disabled-border-color: var(--tic-navy);
+}
+.btn-outline-primary {
+    --bs-btn-color: var(--tic-navy);
+    --bs-btn-border-color: var(--tic-navy);
+    --bs-btn-hover-bg: var(--tic-navy);
+    --bs-btn-hover-border-color: var(--tic-navy);
+    --bs-btn-active-bg: var(--tic-navy-dark);
+}
+.text-bg-primary { background-color: var(--tic-navy) !important; }
+
+/* Foco visible y consistente para navegación por teclado */
+:focus-visible {
+    outline: 3px solid #f2b705 !important;
+    outline-offset: 2px;
+    box-shadow: none !important;
+}
+
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    top: .5rem;
+    z-index: 2000;
+    padding: .5rem 1rem;
+    background: #fff;
+    color: var(--tic-navy);
+    border-radius: .375rem;
+}
+.skip-link:focus { left: .5rem; }
+
+/* ---------------------------------------------------------------- Topbar */
+.app-topbar {
+    height: 60px;
+    background: #fff;
+    border-bottom: 1px solid var(--tic-border);
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+}
+.app-brand {
+    color: var(--tic-navy);
+    font-weight: 700;
+    letter-spacing: -.01em;
+    text-decoration: none;
+    line-height: 1.1;
+}
+.app-brand small { display: block; font-weight: 500; font-size: .72rem; color: var(--tic-muted); letter-spacing: .02em; }
+.app-brand-mark {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--tic-navy), var(--tic-teal));
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+.user-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--tic-teal-soft);
+    color: var(--tic-teal);
+    font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: .85rem;
+}
+
+/* --------------------------------------------------------------- Sidebar */
+.app-sidebar {
+    --bs-offcanvas-width: var(--tic-sidebar-width);
+    --bs-offcanvas-bg: var(--tic-navy-dark);
+    /* Bootstrap vuelve transparente .offcanvas-lg en pantallas grandes: se fuerza el fondo */
+    background-color: var(--tic-navy-dark) !important;
+    color: #cfd9e4;
+}
+@media (min-width: 992px) {
+    .app-sidebar {
+        width: var(--tic-sidebar-width);
+        position: sticky;
+        top: 60px;
+        height: calc(100vh - 60px);
+        overflow-y: auto;
+        flex-shrink: 0;
+    }
+}
+.app-sidebar .offcanvas-header { border-bottom: 1px solid rgba(255,255,255,.1); }
+.app-sidebar .nav-section {
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #8fa3b8;
+    padding: 1.1rem 1.25rem .4rem;
+    margin: 0;
+}
+.app-sidebar .nav-link {
+    color: #dbe4ee;
+    padding: .6rem 1.25rem;
+    display: flex; align-items: center; gap: .7rem;
+    border-left: 3px solid transparent;
+    font-size: .95rem;
+}
+.app-sidebar .nav-link .bi { font-size: 1.05rem; opacity: .85; }
+.app-sidebar .nav-link:hover { background: rgba(255,255,255,.06); color: #fff; }
+.app-sidebar .nav-link.active {
+    background: rgba(255,255,255,.09);
+    border-left-color: #4fc3cd;
+    color: #fff;
+    font-weight: 600;
+}
+.sidebar-note {
+    margin: 1.5rem 1rem 1rem;
+    padding: .85rem;
+    border-radius: .5rem;
+    background: rgba(255,255,255,.05);
+    font-size: .78rem;
+    color: #b6c4d3;
+}
+.sidebar-note strong { color: #fff; }
+
+/* ------------------------------------------------------------- Contenido */
+.app-main { min-width: 0; }
+.page-header h1 { font-size: 1.5rem; font-weight: 700; color: var(--tic-navy); margin: 0; }
+.page-header .lead-text { color: var(--tic-muted); margin: .25rem 0 0; }
+.breadcrumb { font-size: .85rem; margin-bottom: .35rem; }
+
+.card { border-color: var(--tic-border); border-radius: .75rem; }
+.card-header { background: #fff; border-bottom-color: var(--tic-border); font-weight: 600; }
+
+.stat-card { border-left: 4px solid var(--tic-teal); }
+.stat-card .stat-value { font-size: 1.9rem; font-weight: 700; color: var(--tic-navy); line-height: 1; }
+.stat-card .stat-label { color: var(--tic-muted); font-size: .85rem; }
+
+/* Contiene los elementos visually-hidden (position:absolute) para que no ensanchen la página */
+.table-responsive { position: relative; }
+.table > :not(caption) > * > * { padding: .75rem .85rem; }
+.table thead th {
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--tic-muted);
+    background: #f8f9fb;
+    font-weight: 600;
+}
+
+.form-label { font-weight: 600; font-size: .92rem; }
+.required-mark { color: #b42318; }
+.form-text { color: var(--tic-muted); }
+
+.temp-password {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 1.15rem;
+    letter-spacing: .05em;
+    background: #fff;
+    border: 1px dashed var(--tic-teal);
+    padding: .35rem .75rem;
+    border-radius: .4rem;
+    user-select: all;
+}
+
+.app-footer { font-size: .8rem; color: var(--tic-muted); }
+
+/* ------------------------------------------------- Pantallas de acceso */
+.auth-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    background:
+        radial-gradient(circle at 15% 20%, rgba(11,110,120,.18), transparent 45%),
+        radial-gradient(circle at 85% 85%, rgba(18,53,91,.16), transparent 45%),
+        var(--tic-sand);
+}
+.auth-card { width: 100%; max-width: 440px; border: 0; box-shadow: 0 10px 35px rgba(11,36,64,.12); }
+.auth-card .card-body { padding: 2rem; }
+.auth-institution { font-size: .82rem; color: var(--tic-muted); text-transform: uppercase; letter-spacing: .06em; }
+.auth-title { color: var(--tic-navy); font-weight: 700; font-size: 1.3rem; }
+.emergency-note {
+    font-size: .8rem;
+    border-left: 3px solid #b42318;
+    background: #fff;
+    padding: .6rem .8rem;
+    border-radius: .35rem;
+    color: var(--tic-text);
+}
+
+@media (max-width: 575.98px) {
+    .auth-card .card-body { padding: 1.5rem; }
+    .page-header h1 { font-size: 1.3rem; }
+}

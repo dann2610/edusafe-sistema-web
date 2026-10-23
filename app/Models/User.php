@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Enums\RoleSlug;
+use App\Notifications\ResetPasswordNotification;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -48,6 +50,35 @@ class User extends Authenticatable
             'must_change_password' => 'boolean',
             'password' => 'hashed',
         ];
+    }
+
+    /** Correos siempre en minúsculas y sin espacios. */
+    protected function email(): Attribute
+    {
+        return Attribute::set(fn (?string $value) => $value === null ? null : mb_strtolower(trim($value)));
+    }
+
+    /** Notificación de recuperación en español. */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
+    }
+
+    public static function findByEmail(string $email): ?self
+    {
+        return static::where('email', mb_strtolower(trim($email)))->first();
+    }
+
+    public static function activeAdministratorsCount(): int
+    {
+        return static::active()->withRole(RoleSlug::Administrador)->count();
+    }
+
+    public function isLastActiveAdministrator(): bool
+    {
+        return $this->is_active
+            && $this->hasRole(RoleSlug::Administrador)
+            && static::activeAdministratorsCount() <= 1;
     }
 
     public function role(): BelongsTo

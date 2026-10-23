@@ -6,7 +6,7 @@ Sistema web para registrar, gestionar y dar seguimiento a incidentes de segurida
 
 Stack: Laravel 12 · PHP 8.2+ · PostgreSQL 14+ · Blade + Bootstrap 5 · PHPUnit 11.
 
-Estado actual: **Fase 0 completada** (arquitectura, modelo de datos, seeders, pruebas). Ver [`docs/FASE-0-ARQUITECTURA.md`](docs/FASE-0-ARQUITECTURA.md).
+Estado actual: **Sprint 1 completado** — inicio de sesión, usuarios, roles y permisos, bitácora. Ver [`docs/FASE-0-ARQUITECTURA.md`](docs/FASE-0-ARQUITECTURA.md) y [`docs/SPRINT-1.md`](docs/SPRINT-1.md).
 
 ## Requisitos
 

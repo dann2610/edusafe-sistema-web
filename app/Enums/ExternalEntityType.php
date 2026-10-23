@@ -42,4 +42,10 @@ enum ExternalEntityType: string
     {
         return array_column(self::cases(), 'value');
     }
+
+    /** Tipos de entidad a los que puede vincularse una cuenta de personal policial. */
+    public static function policeTypes(): array
+    {
+        return [self::Policia->value, self::Dinapen->value];
+    }
 }

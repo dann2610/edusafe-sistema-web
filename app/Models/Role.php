@@ -28,8 +28,7 @@ class Role extends Model
 
     public function hasPermission(string $permission): bool
     {
-        return $this->relationLoaded('permissions')
-            ? $this->permissions->contains('slug', $permission)
-            : $this->permissions()->where('slug', $permission)->exists();
+        // Se cargan una sola vez por petición y se reutilizan en cada verificación
+        return $this->loadMissing('permissions')->permissions->contains('slug', $permission);
     }
 }
