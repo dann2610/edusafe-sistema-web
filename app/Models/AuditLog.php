@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToInstitution;
 use App\Enums\AuditResult;
 use App\Models\Concerns\Immutable;
 use Illuminate\Database\Eloquent\Model;
@@ -10,11 +11,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /** Bitácora de auditoría (inmutable). Se escribe solo mediante App\Services\AuditLogger. */
 class AuditLog extends Model
 {
+    use BelongsToInstitution;
+
     use Immutable;
 
     public const UPDATED_AT = null;
 
-    protected $fillable = ['user_id', 'action', 'auditable_type', 'auditable_id', 'result', 'ip_address', 'metadata'];
+    protected $fillable = ['institution_id', 'user_id', 'action', 'auditable_type', 'auditable_id', 'result', 'ip_address', 'metadata'];
 
     protected function casts(): array
     {

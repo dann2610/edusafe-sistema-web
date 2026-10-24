@@ -42,19 +42,20 @@ class DemoIncidentsSeeder extends Seeder
 
         $registrar = app(IncidentRegistrar::class);
         $workflow = app(CaseWorkflow::class);
+        $institution = \App\Models\Institution::default();
 
         $dece = User::where('email', 'dece.demo@uecrc.test')->firstOrFail();
-        $docentes = User::active()->withRole(RoleSlug::Docente)->get();
+        $docentes = User::active()->ofInstitution($institution->id)->withRole(RoleSlug::Docente)->get();
         $autoridad = User::where('email', 'autoridad.demo@uecrc.test')->first();
         $reporters = $docentes->concat(array_filter([$dece, $autoridad]))->values(); // concat no modifica $docentes
 
-        $period = AcademicPeriod::current();
-        $enrollments = Enrollment::with('student')->where('academic_period_id', $period?->id)->get();
-        $cat = IncidentCategory::pluck('id', 'code');
-        $types = FollowUpType::pluck('id', 'name');
-        $measures = MeasureType::pluck('id', 'name');
-        $police = ExternalEntity::where('type', 'policia')->first();
-        $junta = ExternalEntity::where('type', 'junta_proteccion')->first();
+        $period = AcademicPeriod::current($institution->id);
+        $enrollments = Enrollment::with('student')->where('academic_period_id', $period?->id)->orderBy('id')->get();
+        $cat = IncidentCategory::whereNull('institution_id')->pluck('id', 'code');
+        $types = FollowUpType::whereNull('institution_id')->pluck('id', 'name');
+        $measures = MeasureType::whereNull('institution_id')->pluck('id', 'name');
+        $police = ExternalEntity::whereNull('institution_id')->where('type', 'policia')->first();
+        $junta = ExternalEntity::whereNull('institution_id')->where('type', 'junta_proteccion')->first();
 
         // [categoría, días atrás, estado final, riesgo inmediato, público, texto]
         $plan = [
@@ -105,7 +106,10 @@ class DemoIncidentsSeeder extends Seeder
             ];
 
             if ($public) {
-                $incident = $registrar->registerPublic($data + ['reporter_relationship' => $n % 2 ? 'estudiante' : 'representante']);
+                [$incident] = $registrar->registerPublic($institution, $data + [
+                    'reporter_relationship' => $n % 2 ? 'estudiante' : 'representante',
+                    'reporter_mode' => 'sin_contacto', 'is_ongoing' => 'no_sabe', 'authority_informed' => 'no',
+                ], [['role' => 'afectado', 'non_student_description' => 'Estudiante del curso (sin nombre)']]);
             } else {
                 $participants = [];
                 if ($enrollment) {
@@ -121,6 +125,15 @@ class DemoIncidentsSeeder extends Seeder
         }
 
         Carbon::setTestNow();
+
+        // Tres casos en la segunda institución DEMO (para comprobar el aislamiento)
+        $second = \App\Models\Institution::where('code_prefix', 'UEDEMO')->first();
+        $secondDocente = User::where('email', 'docente@uedemo.test')->first();
+        if ($second && $secondDocente) {
+            foreach (['ACOSO' => '[DEMO] Caso de la segunda institución: burlas en el recreo.', 'CIBERACOSO' => '[DEMO] Caso de la segunda institución: mensajes ofensivos en redes.', 'VIOL_VERBAL' => '[DEMO] Caso de la segunda institución: insultos en el aula.'] as $code => $text) {
+                $registrar->registerInternal($secondDocente, ['incident_category_id' => $cat[$code], 'description' => $text, 'immediate_risk' => false]);
+            }
+        }
 
         // Los avisos antiguos de la demostración quedan como leídos
         DB::table('notifications')->where('created_at', '<', now()->subDays(10))->update(['read_at' => now()]);

@@ -10,6 +10,8 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 /**
+ * Catálogos iniciales GLOBALES (institution_id NULL), compartidos por todas las instituciones.
+ * Cada institución puede agregar los suyos.
  * Catálogos iniciales. Son valores de partida editables desde el módulo de
  * catálogos; la institución puede agregar, renombrar o desactivar registros.
  * Las entidades externas se crean sin datos de contacto: deben completarse
@@ -29,13 +31,14 @@ class CatalogSeeder extends Seeder
                 ['DISCRIMINACION', 'Discriminación', 'Trato desigual por condición personal, origen, género u otra condición.', false],
                 ['VIOL_SEXUAL', 'Presunta violencia sexual', 'Requiere aplicación inmediata del protocolo oficial vigente.', true],
                 ['SUSTANCIAS', 'Situación de riesgo con sustancias', 'Situaciones de riesgo relacionadas con alcohol, tabaco u otras drogas.', true],
+                ['CONFLICTO', 'Conflicto entre estudiantes', 'Desacuerdos o peleas que afectan la convivencia y requieren mediación.', false],
                 ['OTRA', 'Otra situación de riesgo', 'Situaciones que no corresponden a las categorías anteriores.', false],
             ];
             foreach ($categories as $i => [$code, $name, $desc, $high]) {
-                IncidentCategory::updateOrCreate(['code' => $code], [
+                IncidentCategory::updateOrCreate(['code' => $code, 'institution_id' => null], [
                     'name' => $name,
                     'description' => $desc,
-                    'suggests_high_priority' => $high,
+                    'default_priority' => $high ? 'alta' : 'normal',
                     'available_in_public_form' => true,
                     'sort_order' => ($i + 1) * 10,
                     'is_active' => true,
@@ -54,7 +57,7 @@ class CatalogSeeder extends Seeder
                 ['Activación de protocolo oficial', 'proteccion'],
             ];
             foreach ($measures as [$name, $kind]) {
-                MeasureType::updateOrCreate(['name' => $name], ['kind' => $kind, 'is_active' => true]);
+                MeasureType::updateOrCreate(['name' => $name, 'institution_id' => null], ['kind' => $kind, 'is_active' => true]);
             }
 
             $followUps = [
@@ -68,7 +71,7 @@ class CatalogSeeder extends Seeder
                 'Otra actuación',
             ];
             foreach ($followUps as $name) {
-                FollowUpType::updateOrCreate(['name' => $name], ['is_active' => true]);
+                FollowUpType::updateOrCreate(['name' => $name, 'institution_id' => null], ['is_active' => true]);
             }
 
             $entities = [
@@ -80,7 +83,7 @@ class CatalogSeeder extends Seeder
                 ['Centro de Salud del sector', 'salud'],
             ];
             foreach ($entities as [$name, $type]) {
-                ExternalEntity::updateOrCreate(['name' => $name], [
+                ExternalEntity::updateOrCreate(['name' => $name, 'institution_id' => null], [
                     'type' => $type,
                     'notes' => 'Completar contacto institucional verificado.',
                     'is_active' => true,

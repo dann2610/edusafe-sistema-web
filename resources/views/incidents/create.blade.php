@@ -12,11 +12,23 @@
             <div class="card-header">1. Datos del hecho</div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6"><x-form.select name="incident_category_id" label="Categoría" required :options="$categories->pluck('name', 'id')->all()" /></div>
+                    <div class="col-md-6"><x-form.select name="incident_category_id" label="Categoría" required :options="$categories->pluck('name', 'id')->all()" data-category-select /></div>
                     <div class="col-md-6"><x-form.select name="course_id" label="Curso relacionado" :options="$courses" placeholder="No aplica / no se sabe" /></div>
                     <div class="col-md-6"><x-form.input name="occurred_at" type="datetime-local" label="Fecha y hora aproximadas" /></div>
                     <div class="col-md-6"><x-form.input name="location" label="Lugar aproximado" maxlength="255" help="Ejemplo: patio central, laboratorio, redes sociales." /></div>
+                    <div class="col-md-6"><x-form.select name="is_ongoing" label="¿La situación continúa?" :options="\App\Models\Incident::YES_NO_UNKNOWN" placeholder="Sin indicar" /></div>
                 </div>
+                @php $selectedCategory = (string) old('incident_category_id'); @endphp
+                @foreach ($categories as $category)
+                    @if ($category->activeFields->isNotEmpty())
+                        <div class="note d-block mb-3" data-category-fields="{{ $category->id }}" @if ($selectedCategory !== (string) $category->id) hidden @endif>
+                            <p class="section-title mb-2">Información adicional: {{ $category->name }}</p>
+                            @foreach ($category->activeFields as $field)
+                                <x-extra-field :field="$field" :disabled="$selectedCategory !== (string) $category->id" />
+                            @endforeach
+                        </div>
+                    @endif
+                @endforeach
                 <x-form.textarea name="description" label="Descripción de lo ocurrido" required rows="6" maxlength="5000"
                                  help="Hechos observados o comunicados, sin juicios ni conclusiones. Mínimo 20 caracteres." />
                 <x-form.checkbox name="immediate_risk" label="Se comunicó un posible riesgo inmediato" help="Asigna prioridad urgente y alerta al DECE." />

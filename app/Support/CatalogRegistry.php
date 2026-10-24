@@ -6,7 +6,6 @@ use App\Enums\ExternalEntityType;
 use App\Enums\MeasureKind;
 use App\Models\ExternalEntity;
 use App\Models\FollowUpType;
-use App\Models\IncidentCategory;
 use App\Models\MeasureType;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -21,24 +20,6 @@ final class CatalogRegistry
     public static function all(): array
     {
         return [
-            'categorias' => [
-                'model' => IncidentCategory::class,
-                'title' => 'Categorías de incidentes',
-                'singular' => 'categoría',
-                'icon' => 'bi-tags',
-                'order' => [['sort_order', 'asc'], ['name', 'asc']],
-                'columns' => ['code' => 'Código', 'name' => 'Nombre', 'suggests_high_priority' => 'Prioridad alta', 'available_in_public_form' => 'En formulario público'],
-                'fields' => [
-                    'code' => ['label' => 'Código', 'type' => 'text', 'required' => true, 'unique' => true, 'max' => 30,
-                        'extra' => ['regex:/^[A-Z0-9_]+$/'], 'help' => 'Mayúsculas, números y guion bajo. Ejemplo: CIBERACOSO.'],
-                    'name' => ['label' => 'Nombre', 'type' => 'text', 'required' => true, 'unique' => true, 'max' => 120],
-                    'description' => ['label' => 'Descripción', 'type' => 'textarea', 'max' => 500,
-                        'help' => 'Se muestra como orientación en los formularios.'],
-                    'suggests_high_priority' => ['label' => 'Sugerir prioridad alta al registrar', 'type' => 'checkbox'],
-                    'available_in_public_form' => ['label' => 'Disponible en el formulario público', 'type' => 'checkbox', 'default' => true],
-                    'sort_order' => ['label' => 'Orden', 'type' => 'number', 'min' => 0, 'max' => 9999, 'default' => 100],
-                ],
-            ],
             'entidades' => [
                 'model' => ExternalEntity::class,
                 'title' => 'Entidades externas',
@@ -99,8 +80,11 @@ final class CatalogRegistry
         return $all[$key] + ['key' => $key];
     }
 
-    /** Reglas de validación construidas a partir de la definición. */
-    public static function rules(array $catalog, ?int $ignoreId = null): array
+    /**
+     * Reglas de validación construidas a partir de la definición.
+     * La unicidad se comprueba entre los registros globales y los de la institución.
+     */
+    public static function rules(array $catalog, ?int $ignoreId = null, ?int $institutionId = null): array
     {
         $model = new $catalog['model'];
         $rules = [];
@@ -127,7 +111,16 @@ final class CatalogRegistry
                 $r[] = Rule::in(array_keys($f['options']));
             }
             if ($f['unique'] ?? false) {
-                $r[] = Rule::unique($model->getTable(), $name)->ignore($ignoreId);
+                $table = $model->getTable();
+                $r[] = function (string $attr, $value, $fail) use ($table, $name, $ignoreId, $institutionId) {
+                    $exists = \Illuminate\Support\Facades\DB::table($table)
+                        ->where(fn ($q) => $q->whereNull('institution_id')->when($institutionId, fn ($w) => $w->orWhere('institution_id', $institutionId)))
+                        ->whereRaw("LOWER({$name}) = ?", [mb_strtolower((string) $value)])
+                        ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))->exists();
+                    if ($exists) {
+                        $fail('Ya existe un registro con ese valor (global o de su institución).');
+                    }
+                };
             }
             foreach ($f['extra'] ?? [] as $extra) {
                 $r[] = $extra;

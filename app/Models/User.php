@@ -19,7 +19,7 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     /**
-     * role_id, external_entity_id e is_active NO son asignables en masa:
+     * role_id, institution_id, external_entity_id e is_active NO son asignables en masa:
      * se modifican solo desde servicios con autorización explícita.
      */
     protected $fillable = [
@@ -69,16 +69,38 @@ class User extends Authenticatable
         return static::where('email', mb_strtolower(trim($email)))->first();
     }
 
-    public static function activeAdministratorsCount(): int
+    /** Administradores activos de la misma institución. */
+    public static function activeAdministratorsCount(?int $institutionId = null): int
     {
-        return static::active()->withRole(RoleSlug::Administrador)->count();
+        return static::active()->withRole(RoleSlug::Administrador)->where('institution_id', $institutionId)->count();
     }
 
     public function isLastActiveAdministrator(): bool
     {
         return $this->is_active
             && $this->hasRole(RoleSlug::Administrador)
-            && static::activeAdministratorsCount() <= 1;
+            && static::activeAdministratorsCount($this->institution_id) <= 1;
+    }
+
+    public function institution(): BelongsTo
+    {
+        return $this->belongsTo(Institution::class);
+    }
+
+    public function isSuperadmin(): bool
+    {
+        return $this->institution_id === null && $this->hasRole(RoleSlug::Superadmin);
+    }
+
+    /** Mismos datos institucionales (los usuarios no tienen alcance global automático). */
+    public function scopeOfInstitution(Builder $query, ?int $institutionId): Builder
+    {
+        return $query->where('institution_id', $institutionId);
+    }
+
+    public function sameInstitutionAs(?self $other): bool
+    {
+        return $other !== null && $this->institution_id !== null && $this->institution_id === $other->institution_id;
     }
 
     public function role(): BelongsTo

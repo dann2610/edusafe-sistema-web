@@ -12,6 +12,12 @@ use App\Models\User;
  */
 class UserPolicy
 {
+    /** Solo se administran cuentas de la propia institución (nunca la del superadministrador). */
+    private function manages(User $actor, User $target): bool
+    {
+        return $actor->hasPermission('usuarios.gestionar') && $actor->sameInstitutionAs($target);
+    }
+
     public function viewAny(User $actor): bool
     {
         return $actor->hasPermission('usuarios.gestionar');
@@ -19,7 +25,7 @@ class UserPolicy
 
     public function view(User $actor, User $target): bool
     {
-        return $actor->hasPermission('usuarios.gestionar');
+        return $this->manages($actor, $target);
     }
 
     public function create(User $actor): bool
@@ -29,19 +35,19 @@ class UserPolicy
 
     public function update(User $actor, User $target): bool
     {
-        return $actor->hasPermission('usuarios.gestionar');
+        return $this->manages($actor, $target);
     }
 
     public function changeRole(User $actor, User $target): bool
     {
-        return $actor->hasPermission('usuarios.gestionar')
+        return $this->manages($actor, $target)
             && ! $actor->is($target)
             && ! $target->isLastActiveAdministrator();
     }
 
     public function deactivate(User $actor, User $target): bool
     {
-        return $actor->hasPermission('usuarios.gestionar')
+        return $this->manages($actor, $target)
             && ! $actor->is($target)
             && $target->is_active
             && ! $target->isLastActiveAdministrator();
@@ -49,12 +55,12 @@ class UserPolicy
 
     public function activate(User $actor, User $target): bool
     {
-        return $actor->hasPermission('usuarios.gestionar') && ! $target->is_active;
+        return $this->manages($actor, $target) && ! $target->is_active;
     }
 
     public function resetPassword(User $actor, User $target): bool
     {
-        return $actor->hasPermission('usuarios.gestionar')
+        return $this->manages($actor, $target)
             && ! $actor->is($target)
             && $target->is_active;
     }

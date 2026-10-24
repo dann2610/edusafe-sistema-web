@@ -1,6 +1,6 @@
 # TIC para Unidades Educativas Seguras
 
-**Monitoreo, comunicación y cultura de prevención** — Unidad Educativa Cardenal Richard Cushing (Ecuador).
+**Monitoreo, comunicación y cultura de prevención** — plataforma multiinstitucional. La institución inicial es la Unidad Educativa Cardenal Richard Cushing (Ecuador).
 
 Sistema web para registrar, gestionar y dar seguimiento a incidentes de seguridad y convivencia escolar, con apoyo al DECE e indicadores agregados. Es una herramienta de apoyo: no determina la veracidad de una denuncia, no asigna responsabilidades y no reemplaza los protocolos oficiales ni los canales de emergencia (ECU 911).
 
@@ -8,14 +8,15 @@ Stack: Laravel 12 · PHP 8.2+ · PostgreSQL 14+ · Blade + Bootstrap 5 · Chart.
 
 ## Módulos
 
-Página pública y código QR · Reporte público con protección antispam · Autenticación y recuperación de contraseña · Usuarios, roles y permisos · Catálogos (periodos, cursos, estudiantes, categorías, entidades, tipos de medida y de actuación) · Registro de incidentes con involucrados y evidencias privadas · Bandeja del DECE y gestión de casos · Asignaciones · Seguimientos con correcciones trazables · Medidas · Derivaciones y vista policial · Historial inmutable · Notificaciones internas · Dashboard · Reportes PDF y Excel · Bitácora de auditoría.
+Plataforma multiinstitucional con superadministrador (instituciones, módulos, catálogos globales, estadísticas agregadas) y aislamiento de datos por institución · Módulos activables por institución con dependencias · Categorías globales y locales con campos adicionales tipados, prioridad y responsable inicial · Página pública por institución y código QR · Formulario público por pasos (incidente, personas, quien reporta, evidencias opcionales, revisión) con consulta de estado por código y clave · Reporte público con protección antispam · Autenticación y recuperación de contraseña · Usuarios, roles y permisos · Catálogos (periodos, cursos, estudiantes, categorías, entidades, tipos de medida y de actuación) · Registro de incidentes con involucrados y evidencias privadas · Bandeja del DECE y gestión de casos · Asignaciones · Seguimientos con correcciones trazables · Medidas · Derivaciones y vista policial · Historial inmutable · Notificaciones internas · Dashboard · Reportes PDF y Excel · Bitácora de auditoría.
 
-**Pruebas: 111 pruebas automatizadas, 751 aserciones, todas en verde** ([`docs/RESULTADOS-PRUEBAS.md`](docs/RESULTADOS-PRUEBAS.md)).
+**Pruebas: 132 pruebas automatizadas, 996 aserciones, todas en verde** ([`docs/RESULTADOS-PRUEBAS.md`](docs/RESULTADOS-PRUEBAS.md)).
 
 ## Documentación
 
 | Documento | Contenido |
 |---|---|
+| [`docs/AUDITORIA-Y-PLAN.md`](docs/AUDITORIA-Y-PLAN.md) | Auditoría del sistema anterior, plan y estado de la segunda etapa |
 | [`docs/FASE-0-ARQUITECTURA.md`](docs/FASE-0-ARQUITECTURA.md) | Arquitectura, modelo de datos, estados, permisos, decisiones y aspectos de la LOPDP |
 | [`docs/MANUAL-TECNICO.md`](docs/MANUAL-TECNICO.md) | Estructura, seguridad, reglas de negocio, tareas programadas y respaldos |
 | [`docs/MANUAL-USUARIO.md`](docs/MANUAL-USUARIO.md) | Uso del sistema por perfil |
@@ -49,13 +50,17 @@ Abra **http://localhost:8000**. Usuarios de demostración (contraseña `Demo.Loc
 
 | Correo | Perfil |
 |---|---|
-| `admin.demo@uecrc.test` | Administrador técnico |
-| `dece.demo@uecrc.test` | DECE |
-| `docente.demo@uecrc.test` | Docente o tutor |
-| `autoridad.demo@uecrc.test` | Autoridad institucional |
+| `superadmin.demo@uecrc.test` | Superadministrador de la plataforma |
+| `admin.demo@uecrc.test` | Administrador institucional (UECRC) |
+| `dece.demo@uecrc.test` | DECE (UECRC) |
+| `docente.demo@uecrc.test` | Docente o tutor (UECRC) |
+| `autoridad.demo@uecrc.test` | Autoridad institucional (UECRC) |
 | `policia.demo@uecrc.test` | Personal policial |
+| `admin@uedemo.test`, `dece@uedemo.test`, `docente@uedemo.test` | Segunda institución ficticia (UEDEMO), para comprobar el aislamiento |
 
-Los casos de demostración tienen el prefijo `[DEMO]` y los estudiantes son ficticios (`DEMO-0001…`).
+Los casos de demostración tienen el prefijo `[DEMO]` y los estudiantes son ficticios (`DEMO-0001…`, `DEMO2-…`). Página pública de la segunda institución: `http://localhost:8000/i/uedemo`.
+
+**Actualizar una instalación existente sin perder datos:** `composer dump-autoload`, `php artisan optimize:clear` y `php artisan migrate`. La migración asigna todos los registros existentes a la institución inicial.
 
 **3. Pruebas:** `composer test`.
 

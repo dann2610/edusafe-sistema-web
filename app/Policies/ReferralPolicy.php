@@ -15,6 +15,7 @@ class ReferralPolicy
     {
         return $user->hasPermission('derivaciones.ver_entidad')
             && $user->external_entity_id !== null
-            && $referral->external_entity_id === $user->external_entity_id;
+            && $referral->external_entity_id === $user->external_entity_id
+            && $referral->incident?->institution_id === $user->institution_id;
     }
 }

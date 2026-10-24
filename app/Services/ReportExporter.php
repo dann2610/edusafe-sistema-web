@@ -149,7 +149,7 @@ class ReportExporter
             $out['Estado'] = \App\Enums\CaseStatus::from($f['estado'])->label();
         }
         if (! empty($f['responsable'])) {
-            $out['Responsable'] = User::find($f['responsable'])?->name ?? '—';
+            $out['Responsable'] = User::ofInstitution(app(\App\Support\TenantContext::class)->id())->find($f['responsable'])?->name ?? '—';
         }
         if (! empty($f['desde']) || ! empty($f['hasta'])) {
             $out['Fechas de registro'] = ($f['desde'] ?? '…').' a '.($f['hasta'] ?? '…');

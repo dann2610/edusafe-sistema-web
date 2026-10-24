@@ -27,11 +27,12 @@ class UserController extends Controller
 
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
-            'rol' => ['nullable', 'string', 'in:'.implode(',', RoleSlug::values())],
+            'rol' => ['nullable', 'string', 'in:'.implode(',', array_map(fn ($r) => $r->value, RoleSlug::institutional()))],
             'estado' => ['nullable', 'in:activos,inactivos'],
         ]);
 
         $users = User::query()
+            ->ofInstitution($request->user()->institution_id)
             ->with(['role', 'externalEntity'])
             ->when($filters['q'] ?? null, function (Builder $q, string $term) {
                 $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], mb_strtolower($term)).'%';
@@ -48,7 +49,7 @@ class UserController extends Controller
         return view('admin.users.index', [
             'users' => $users,
             'filters' => $filters,
-            'roles' => RoleSlug::cases(),
+            'roles' => RoleSlug::institutional(),
         ]);
     }
 
@@ -63,7 +64,7 @@ class UserController extends Controller
     {
         Gate::authorize('create', User::class);
 
-        [$user, $temporary] = $this->accounts->create($request->validated());
+        [$user, $temporary] = $this->accounts->create($request->validated(), $request->user()->institution_id);
 
         return redirect()->route('admin.usuarios.show', $user)
             ->with('success', 'Cuenta creada correctamente.')
@@ -134,7 +135,7 @@ class UserController extends Controller
     private function formData(): array
     {
         return [
-            'roles' => Role::orderBy('id')->get(),
+            'roles' => Role::where('slug', '!=', RoleSlug::Superadmin->value)->orderBy('id')->get(),
             'entities' => ExternalEntity::active()->whereIn('type', ExternalEntityType::policeTypes())->orderBy('name')->get(),
             'policeRoleId' => Role::where('slug', RoleSlug::Policia->value)->value('id'),
         ];

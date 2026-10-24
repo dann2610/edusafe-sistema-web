@@ -30,30 +30,63 @@ class CatalogAndQrTest extends TestCase
     {
         $this->actingAs($this->admin);
         $this->get('/admin/catalogos')->assertOk()->assertSee('Categorías de incidentes');
+        $this->get('/admin/categorias')->assertOk()->assertSee('Ciberacoso')->assertSee('Global');
 
-        $this->post('/admin/catalogos/categorias', ['code' => 'grooming', 'name' => 'Captación en línea'])
+        $this->post('/admin/categorias', ['code' => 'gr@oming', 'name' => 'Captación en línea', 'default_priority' => 'alta'])
             ->assertSessionHasErrors('code'); // formato de código
-        $this->post('/admin/catalogos/categorias', ['code' => 'GROOMING', 'name' => 'Captación en línea', 'suggests_high_priority' => '1', 'sort_order' => 5])
-            ->assertRedirect('/admin/catalogos/categorias');
+        $this->post('/admin/categorias', ['code' => 'CIBERACOSO', 'name' => 'Otra', 'default_priority' => 'alta'])
+            ->assertSessionHasErrors('code'); // repite una global
+        $this->post('/admin/categorias', ['code' => 'GROOMING', 'name' => 'Captación en línea', 'default_priority' => 'alta', 'sort_order' => 5])
+            ->assertRedirect();
 
         $category = IncidentCategory::where('code', 'GROOMING')->firstOrFail();
-        $this->assertTrue($category->suggests_high_priority);
+        $this->assertSame($this->admin->institution_id, $category->institution_id, 'Las categorías del administrador son locales');
+        $this->assertSame('alta', $category->default_priority->value);
         $this->assertFalse($category->available_in_public_form); // casilla no marcada
 
-        $this->patch("/admin/catalogos/categorias/{$category->id}/estado")->assertRedirect();
-        $this->assertFalse($category->fresh()->is_active);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'catalogo_desactivado']);
+        $this->put("/admin/categorias/{$category->id}", ['code' => 'GROOMING', 'name' => 'Captación de menores en línea', 'default_priority' => 'urgente'])->assertRedirect();
+        $this->get("/admin/categorias/{$category->id}")->assertOk()->assertSee('Historial de cambios')->assertSee('Captación de menores en línea');
+        $log = \App\Models\AuditLog::where('action', 'categoria_actualizada')->latest('id')->firstOrFail();
+        $this->assertSame('alta', $log->metadata['cambios']['prioridad']['antes']);
 
-        $this->post('/admin/catalogos/categorias', ['code' => 'OTRO2', 'name' => 'Captación en línea'])->assertSessionHasErrors('name');
+        $this->patch("/admin/categorias/{$category->id}/estado")->assertRedirect();
+        $this->assertFalse($category->fresh()->is_active);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'categoria_desactivada']);
+
+        // Las globales son de solo lectura para la institución
+        $global = $this->category('ACOSO');
+        $this->put("/admin/categorias/{$global->id}", ['name' => 'Cambiado', 'default_priority' => 'normal'])->assertForbidden();
+        $this->patch("/admin/categorias/{$global->id}/estado")->assertForbidden();
+        $this->assertTrue($global->fresh()->is_active);
+    }
+
+    public function test_campos_adicionales_tipados_y_sin_codigo(): void
+    {
+        $this->actingAs($this->admin);
+        $this->post('/admin/categorias', ['code' => 'LOCAL1', 'name' => 'Categoría local', 'default_priority' => 'normal', 'available_in_public_form' => '1']);
+        $category = IncidentCategory::where('code', 'LOCAL1')->firstOrFail();
+
+        $this->post("/admin/categorias/{$category->id}/campos", ['key' => 'x', 'label' => 'Algo', 'type' => 'script'])->assertSessionHasErrors(['key', 'type']);
+        $this->post("/admin/categorias/{$category->id}/campos", ['key' => 'lugar', 'label' => 'Lugar', 'type' => 'lista', 'options_text' => 'Solo una'])->assertSessionHasErrors('options_text');
+        $this->post("/admin/categorias/{$category->id}/campos", ['key' => 'lugar', 'label' => 'Lugar', 'type' => 'lista', 'options_text' => "Aula\nPatio", 'show_in_public_form' => '1'])->assertRedirect();
+        $field = $category->fields()->firstOrFail();
+        $this->assertSame(['Aula', 'Patio'], $field->options);
+
+        $this->put("/admin/categorias/{$category->id}/campos/{$field->id}", ['label' => 'Lugar', 'type' => 'texto'])->assertSessionHasErrors('type');
+        $this->patch("/admin/categorias/{$category->id}/campos/{$field->id}/estado")->assertRedirect();
+        $this->assertFalse($field->fresh()->is_active);
     }
 
     public function test_los_catalogos_estan_restringidos_al_administrador(): void
     {
         foreach ([RoleSlug::Dece, RoleSlug::Docente, RoleSlug::Autoridad] as $role) {
-            $this->actingAs($this->user($role))->get('/admin/catalogos/categorias')->assertForbidden();
+            $this->actingAs($this->user($role))->get('/admin/categorias')->assertForbidden();
+            $this->get('/admin/catalogos/entidades')->assertForbidden();
             $this->get('/admin/estudiantes')->assertForbidden();
+            $this->get('/plataforma/catalogos')->assertForbidden();
         }
         $this->actingAs($this->admin)->get('/admin/catalogos/inexistente')->assertNotFound();
+        $this->get('/plataforma/instituciones')->assertForbidden();
     }
 
     public function test_periodo_vigente_unico_y_cursos_sin_duplicados(): void
@@ -104,7 +137,7 @@ class CatalogAndQrTest extends TestCase
     {
         config(['seguridad_escolar.qr.url_publica' => 'https://seguridad.uecrc.edu.ec', 'seguridad_escolar.qr.destino' => 'formulario']);
         $this->actingAs($this->admin)->get('/admin/qr')->assertOk()
-            ->assertSee('https://seguridad.uecrc.edu.ec/reportar')->assertSee('<svg', false)->assertDontSee('no usa HTTPS');
+            ->assertSee('https://seguridad.uecrc.edu.ec/i/'.$this->admin->institution->slug.'/reportar')->assertSee('<svg', false)->assertDontSee('no usa HTTPS');
 
         $png = $this->get('/admin/qr/descargar/png')->assertOk()->assertHeader('content-type', 'image/png');
         $this->assertStringStartsWith("\x89PNG", $png->getContent());

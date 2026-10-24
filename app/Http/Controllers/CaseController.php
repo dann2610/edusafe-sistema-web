@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ScopedRule;
 use App\Enums\AssignmentRole;
 use App\Enums\CasePriority;
 use App\Enums\CaseStatus;
@@ -66,7 +67,7 @@ class CaseController extends Controller
             'counts' => $counts,
             'categories' => IncidentCategory::orderBy('name')->pluck('name', 'id')->all(),
             'courses' => $this->currentCourses(),
-            'responsibles' => User::active()->whereHas('caseAssignments')->orderBy('name')->pluck('name', 'id')->all(),
+            'responsibles' => User::active()->ofInstitution($request->user()->institution_id)->whereHas('caseAssignments')->orderBy('name')->pluck('name', 'id')->all(),
         ]);
     }
 
@@ -94,13 +95,14 @@ class CaseController extends Controller
             'measures' => fn ($q) => $q->with(['type', 'responsible'])->latest('starts_on'),
             'referrals' => fn ($q) => $q->with(['externalEntity', 'registeredBy'])->latest('referred_on'),
             'events' => fn ($q) => $q->with('user'),
+            'notes.user',
         ]);
 
         $user = $request->user();
         $data = ['incident' => $incident, 'transitions' => $incident->status->allowedTransitions()];
 
         if ($user->can('assign', $incident)) {
-            $data['assignables'] = User::active()->whereHas('role.permissions', fn ($q) => $q->where('slug', 'seguimientos.registrar'))
+            $data['assignables'] = User::active()->ofInstitution($incident->institution_id)->whereHas('role.permissions', fn ($q) => $q->where('slug', 'seguimientos.registrar'))
                 ->whereNotIn('id', $incident->assignments->whereNull('unassigned_at')->pluck('user_id'))
                 ->with('role')->orderBy('name')->get()
                 ->mapWithKeys(fn ($u) => [$u->id => $u->name.' — '.$u->role->name])->all();
@@ -111,7 +113,7 @@ class CaseController extends Controller
         if ($user->can('manageMeasures', $incident)) {
             $data['measureTypes'] = MeasureType::active()->orderBy('kind')->orderBy('name')->get()
                 ->mapWithKeys(fn ($t) => [$t->id => $t->name.' ('.$t->kind->label().')'])->all();
-            $data['responsibles'] = User::active()->whereHas('role', fn ($q) => $q->whereIn('slug', ['dece', 'docente', 'autoridad']))->orderBy('name')->pluck('name', 'id')->all();
+            $data['responsibles'] = User::active()->ofInstitution($incident->institution_id)->whereHas('role', fn ($q) => $q->whereIn('slug', ['dece', 'docente', 'autoridad']))->orderBy('name')->pluck('name', 'id')->all();
         }
         if ($user->can('manageReferrals', $incident)) {
             $data['entities'] = ExternalEntity::active()->orderBy('name')->pluck('name', 'id')->all();
@@ -166,7 +168,7 @@ class CaseController extends Controller
         Gate::authorize('manage', $incident);
 
         $data = $request->validate([
-            'student_id' => ['nullable', 'integer', Rule::exists('students', 'id')->where('is_active', true), 'required_without:non_student_description'],
+            'student_id' => ['nullable', 'integer', ScopedRule::own('students')->where('is_active', true), 'required_without:non_student_description'],
             'non_student_description' => ['nullable', 'string', 'max:150'],
             'role' => ['required', Rule::enum(ParticipantRole::class)],
             'notes' => ['nullable', 'string', 'max:500'],

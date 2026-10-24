@@ -11,16 +11,16 @@
 
     <div class="row g-3 mb-3">
         @foreach ([
-            ['Total registrados', $summary['total'], 'var(--tic-navy)'],
+            ['Total registrados', $summary['total'], 'var(--c-ink)'],
             ['Pendientes de atención', $summary['pendientes'], '#c98a04'],
             ['Urgentes abiertos', $summary['urgentes'], '#b42318'],
             ['Derivados', $summary['derivados'], '#212529'],
             ['Cerrados', $summary['cerrados'], '#198754'],
-            ['Días promedio al cierre', $summary['dias_cierre'] ?? '—', 'var(--tic-teal)'],
+            ['Días promedio al cierre', $summary['dias_cierre'] ?? '—', 'var(--c-teal)'],
         ] as [$label, $value, $color])
             <div class="col-6 col-md-4 col-xl-2">
-                <div class="card stat-card h-100" style="border-left-color:{{ $color }}">
-                    <div class="card-body py-3"><div class="stat-value">{{ $value }}</div><div class="stat-label">{{ $label }}</div></div>
+                <div class="card stat-card h-100" style="--accent: {{ $color }}">
+                    <div class="card-body py-3"><span class="stat-accent" aria-hidden="true"></span><div class="stat-value">{{ $value }}</div><div class="stat-label">{{ $label }}</div></div>
                 </div>
             </div>
         @endforeach

@@ -4,6 +4,10 @@
 
 El sistema ayuda a registrar y dar seguimiento a situaciones de convivencia y seguridad escolar. **No atiende emergencias:** ante un peligro inmediato llame al **ECU 911** y active el protocolo institucional.
 
+## 0. Plataforma e instituciones
+
+La plataforma puede alojar varias instituciones. Cada una ve **solo sus propios datos**. El **superadministrador** registra instituciones (con su administrador inicial), autoriza módulos, mantiene los catálogos globales y consulta cifras agregadas; no abre expedientes. El **administrador institucional** gestiona usuarios, categorías propias, catálogos, la configuración de su institución (contacto, reportes sin datos de contacto, límite por hora, requisitos de cierre) y activa los módulos autorizados en **Mi institución**.
+
 ## 1. Ingreso
 
 1. Abra la dirección del sistema y pulse **Iniciar sesión**.
@@ -27,6 +31,9 @@ La campana de la barra superior muestra las notificaciones nuevas: reportes reci
 
 ## 3. Reporte público (código QR)
 
+Cada institución tiene su página: `/i/{siglas}` (la inicial también responde en `/`). El formulario tiene pasos: **qué pasó** (tipo, fecha y hora aproximadas o desconocidas, lugar, descripción, si continúa, riesgo inmediato, si ya se informó a una autoridad), **personas** (sin nombres obligatorios), **sobre ti** (con o sin contacto, si la institución lo permite), **evidencias** (solo si el módulo está activo) y **revisión**. Al enviar se muestra el código, la fecha y, si la consulta de estado está activa, una **clave** que solo se ve una vez y permite consultar el estado en «Consultar un reporte».
+
+
 Al escanear el QR se abre la página pública. **Reportar un incidente** abre un formulario que no requiere cuenta. Al enviar, la persona recibe un código de reporte. El canal no es anónimo y no admite archivos adjuntos.
 
 ## 4. Registrar un incidente (personal)
@@ -38,6 +45,10 @@ Al escanear el QR se abre la página pública. **Reportar un incidente** abre un
 3. **Evidencias** (opcional): hasta 3 archivos PDF, JPG, PNG o DOCX. No adjunte imágenes íntimas de menores.
 
 Al guardar se genera un código (por ejemplo `UECRC-2026-000123`) y el DECE es notificado. En **Mis reportes** verá el estado de atención; por confidencialidad, las actuaciones solo las ven el DECE y los responsables.
+
+## 4.1 Docentes: reportes y casos asignados
+
+El inicio separa **Reportes que registré** (pendientes, información solicitada, en atención, cerrados) de **Casos asignados a mí** (abiertos, que requieren actuación, seguimientos vencidos). En un reporte propio abierto puede **agregar información** para el DECE; en un caso asignado puede **escalar al DECE** con un motivo. No ve expedientes que no le correspondan.
 
 ## 5. Gestión de casos (DECE)
 

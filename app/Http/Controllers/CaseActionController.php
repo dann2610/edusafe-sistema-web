@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ScopedRule;
 use App\Enums\AssignmentRole;
 use App\Enums\ComplianceStatus;
 use App\Enums\ReferralChannel;
@@ -35,12 +36,12 @@ class CaseActionController extends Controller
         Gate::authorize('assign', $incident);
 
         $data = $request->validate([
-            'user_id' => ['required', 'integer', Rule::exists('users', 'id')->where('is_active', true)],
+            'user_id' => ['required', 'integer', ScopedRule::own('users')->where('is_active', true)],
             'assignment_role' => ['required', Rule::enum(AssignmentRole::class)],
             'notes' => ['nullable', 'string', 'max:500'],
         ], [], ['user_id' => 'el responsable', 'assignment_role' => 'el tipo de responsabilidad']);
 
-        $this->workflow->assign($incident, User::findOrFail($data['user_id']), AssignmentRole::from($data['assignment_role']), $request->user(), $data['notes'] ?? null);
+        $this->workflow->assign($incident, User::ofInstitution($incident->institution_id)->findOrFail($data['user_id']), AssignmentRole::from($data['assignment_role']), $request->user(), $data['notes'] ?? null);
 
         return back()->with('success', 'Responsable asignado y notificado.');
     }
@@ -54,6 +55,16 @@ class CaseActionController extends Controller
         $this->workflow->unassign($assignment, $request->user(), $data['reason']);
 
         return back()->with('success', 'Asignación finalizada.');
+    }
+
+    /** Un responsable asignado (docente) solicita la intervención del DECE. */
+    public function escalate(Request $request, Incident $incident): RedirectResponse
+    {
+        Gate::authorize('escalate', $incident);
+        $data = $request->validate(['reason' => ['required', 'string', 'min:10', 'max:400']], [], ['reason' => 'el motivo']);
+        $this->workflow->escalate($incident, $request->user(), $data['reason']);
+
+        return back()->with('success', 'Se notificó al DECE. La solicitud quedó registrada en el historial.');
     }
 
     // ---------------------------------------------------------- seguimientos
@@ -87,7 +98,7 @@ class CaseActionController extends Controller
     private function followUpRules(): array
     {
         return [
-            'follow_up_type_id' => ['required', 'integer', Rule::exists('follow_up_types', 'id')->where('is_active', true)],
+            'follow_up_type_id' => ['required', 'integer', ScopedRule::ownOrGlobal('follow_up_types')->where('is_active', true)],
             'performed_at' => ['required', 'date', 'before_or_equal:now'],
             'description' => ['required', 'string', 'min:10', 'max:5000'],
             'observations' => ['nullable', 'string', 'max:2000'],
@@ -113,9 +124,9 @@ class CaseActionController extends Controller
         Gate::authorize('manageMeasures', $incident);
 
         $data = $request->validate([
-            'measure_type_id' => ['required', 'integer', Rule::exists('measure_types', 'id')->where('is_active', true)],
+            'measure_type_id' => ['required', 'integer', ScopedRule::ownOrGlobal('measure_types')->where('is_active', true)],
             'description' => ['required', 'string', 'min:10', 'max:3000'],
-            'responsible_user_id' => ['required', 'integer', Rule::exists('users', 'id')->where('is_active', true)],
+            'responsible_user_id' => ['required', 'integer', ScopedRule::own('users')->where('is_active', true)],
             'starts_on' => ['required', 'date'],
             'review_on' => ['nullable', 'date', 'after_or_equal:starts_on'],
             'ends_on' => ['nullable', 'date', 'after_or_equal:starts_on'],
@@ -154,7 +165,7 @@ class CaseActionController extends Controller
         Gate::authorize('manageReferrals', $incident);
 
         $data = $request->validate([
-            'external_entity_id' => ['required', 'integer', Rule::exists('external_entities', 'id')->where('is_active', true)],
+            'external_entity_id' => ['required', 'integer', ScopedRule::ownOrGlobal('external_entities')->where('is_active', true)],
             'referred_on' => ['required', 'date', 'before_or_equal:today'],
             'reason' => ['required', 'string', 'min:10', 'max:3000'],
             'channel' => ['required', Rule::enum(ReferralChannel::class)],

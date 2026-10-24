@@ -35,7 +35,7 @@ class AuditLogController extends Controller
             'logs' => $logs,
             'filters' => $f,
             'actions' => AuditLog::query()->distinct()->orderBy('action')->pluck('action')->mapWithKeys(fn ($a) => [$a => str_replace('_', ' ', ucfirst($a))])->all(),
-            'users' => User::orderBy('name')->pluck('name', 'id')->all(),
+            'users' => User::when(auth()->user()->institution_id, fn ($q, $id) => $q->where('institution_id', $id))->orderBy('name')->pluck('name', 'id')->all(),
             'results' => AuditResult::options(),
         ]);
     }

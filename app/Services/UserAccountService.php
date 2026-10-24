@@ -23,9 +23,9 @@ class UserAccountService
      *
      * @return array{0: User, 1: string}
      */
-    public function create(array $data): array
+    public function create(array $data, ?int $institutionId): array
     {
-        return DB::transaction(function () use ($data) {
+        return DB::transaction(function () use ($data, $institutionId) {
             $temporary = $this->temporaryPassword();
             $role = Role::findOrFail($data['role_id']);
 
@@ -36,6 +36,7 @@ class UserAccountService
                 'password' => $temporary,
             ]);
             $user->role_id = $role->id;
+            $user->institution_id = $role->hasSlug(RoleSlug::Superadmin) ? null : $institutionId;
             $user->external_entity_id = $role->hasSlug(RoleSlug::Policia) ? ($data['external_entity_id'] ?? null) : null;
             $user->is_active = true;
             $user->must_change_password = true;

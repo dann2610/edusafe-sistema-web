@@ -67,7 +67,13 @@ class AuditLogger
         $actor ??= Auth::user();
         $clean = self::sanitize($metadata);
 
+        $institutionId = $actor?->institution_id
+            ?? ($auditable instanceof \App\Models\Institution ? $auditable->id : null)
+            ?? ($auditable && isset($auditable->institution_id) ? $auditable->institution_id : null)
+            ?? app(\App\Support\TenantContext::class)->id();
+
         return [
+            'institution_id' => $institutionId,
             'user_id' => $actor?->getKey(),
             'action' => $action,
             'auditable_type' => $auditable ? class_basename($auditable) : null,

@@ -27,7 +27,7 @@ class ReportController extends Controller
             'categories' => IncidentCategory::orderBy('name')->pluck('name', 'id')->all(),
             'courses' => Course::with('academicPeriod')->orderBy('level')->get()->mapWithKeys(fn ($c) => [$c->id => $c->display_name.' ('.$c->academicPeriod->name.')'])->all(),
             'statuses' => CaseStatus::options(),
-            'responsibles' => User::active()->whereHas('caseAssignments')->orderBy('name')->pluck('name', 'id')->all(),
+            'responsibles' => User::active()->ofInstitution(auth()->user()->institution_id)->whereHas('caseAssignments')->orderBy('name')->pluck('name', 'id')->all(),
             'summaryRows' => null,
         ]);
     }

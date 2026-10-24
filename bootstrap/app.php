@@ -1,7 +1,10 @@
 <?php
 
+use App\Http\Middleware\EnsureModuleEnabled;
 use App\Http\Middleware\EnsurePasswordIsChanged;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\ResetRequestState;
+use App\Http\Middleware\ResolvePublicInstitution;
 use App\Http\Middleware\SecurityHeaders;
 use App\Services\AuditLogger;
 use Illuminate\Foundation\Application;
@@ -17,11 +20,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->web(append: [SecurityHeaders::class]);
+        $middleware->web(prepend: [ResetRequestState::class], append: [SecurityHeaders::class]);
 
         $middleware->alias([
             'active' => EnsureUserIsActive::class,
             'password.changed' => EnsurePasswordIsChanged::class,
+            'module' => EnsureModuleEnabled::class,
+            'public.institution' => ResolvePublicInstitution::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => route('login'));

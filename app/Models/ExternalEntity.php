@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToInstitution;
 use App\Enums\ExternalEntityType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +10,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ExternalEntity extends Model
 {
+    use BelongsToInstitution;
+
+    /** Incluye registros globales (institution_id NULL) además de los de la institución. */
+    protected static bool $allowsGlobal = true;
+
     protected $fillable = [
         'name', 'type', 'institutional_phone', 'institutional_email', 'address', 'notes', 'is_active',
     ];

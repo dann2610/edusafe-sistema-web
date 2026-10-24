@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToInstitution;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class AcademicPeriod extends Model
 {
+    use BelongsToInstitution;
+
     protected $fillable = ['name', 'starts_on', 'ends_on', 'is_active'];
 
     protected function casts(): array
@@ -41,16 +44,23 @@ class AcademicPeriod extends Model
         return $query->where('is_active', true);
     }
 
-    public static function current(): ?self
+    /**
+     * Periodo vigente. Sin argumento usa la institución del contexto actual;
+     * con argumento consulta explícitamente esa institución (consola, servicios).
+     */
+    public static function current(?int $institutionId = null): ?self
     {
-        return static::where('is_current', true)->first();
+        $query = $institutionId === null ? static::query() : static::withoutInstitutionScope()->where('institution_id', $institutionId);
+
+        return $query->where('is_current', true)->first();
     }
 
-    /** Marca este periodo como vigente (y desmarca el anterior) en una transacción. */
+    /** Marca este periodo como vigente de su institución (y desmarca el anterior). */
     public function markAsCurrent(): void
     {
         DB::transaction(function () {
-            static::where('is_current', true)->whereKeyNot($this->getKey())->update(['is_current' => false]);
+            static::withoutInstitutionScope()->where('institution_id', $this->institution_id)
+                ->where('is_current', true)->whereKeyNot($this->getKey())->update(['is_current' => false]);
             $this->forceFill(['is_current' => true])->save();
         });
     }

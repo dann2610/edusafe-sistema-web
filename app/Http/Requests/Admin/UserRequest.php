@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Support\ScopedRule;
 use App\Enums\ExternalEntityType;
 use App\Enums\RoleSlug;
 use App\Models\Role;
@@ -42,11 +43,11 @@ class UserRequest extends FormRequest
                 Rule::unique('users', 'email')->ignore($target?->id),
             ],
             'position' => ['nullable', 'string', 'max:120'],
-            'role_id' => [$target ? 'sometimes' : 'required', 'integer', Rule::exists('roles', 'id')],
+            'role_id' => [$target ? 'sometimes' : 'required', 'integer', Rule::exists('roles', 'id')->whereNot('slug', RoleSlug::Superadmin->value)],
             'external_entity_id' => [
                 Rule::requiredIf(fn () => (int) $this->input('role_id', $target?->role_id) === (int) $policeRoleId),
                 'nullable', 'integer',
-                Rule::exists('external_entities', 'id')->where('is_active', true)->whereIn('type', ExternalEntityType::policeTypes()),
+                ScopedRule::ownOrGlobal('external_entities')->where('is_active', true)->whereIn('type', ExternalEntityType::policeTypes()),
             ],
         ];
     }

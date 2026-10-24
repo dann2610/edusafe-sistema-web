@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Support\ScopedRule;
 use App\Enums\AuditResult;
 use App\Enums\RoleSlug;
 use App\Http\Controllers\Controller;
@@ -86,7 +87,7 @@ class CourseController extends Controller
     {
         return [
             'periods' => AcademicPeriod::active()->orderByDesc('starts_on')->pluck('name', 'id')->all(),
-            'tutors' => User::active()->withRole(RoleSlug::Docente)->orderBy('name')->pluck('name', 'id')->all(),
+            'tutors' => User::active()->ofInstitution(auth()->user()->institution_id)->withRole(RoleSlug::Docente)->orderBy('name')->pluck('name', 'id')->all(),
             'shifts' => self::SHIFTS,
         ];
     }
@@ -94,11 +95,11 @@ class CourseController extends Controller
     private function validated(Request $request, ?Course $course = null): array
     {
         $data = $request->validate([
-            'academic_period_id' => ['required', 'integer', Rule::exists('academic_periods', 'id')],
+            'academic_period_id' => ['required', 'integer', ScopedRule::own('academic_periods')],
             'level' => ['required', 'string', 'max:60'],
             'parallel' => ['required', 'string', 'max:5'],
             'shift' => ['required', Rule::in(array_keys(self::SHIFTS))],
-            'tutor_user_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'tutor_user_id' => ['nullable', 'integer', ScopedRule::own('users')->where('is_active', true)],
         ], [], [
             'academic_period_id' => 'el periodo lectivo', 'level' => 'el nivel', 'parallel' => 'el paralelo',
             'shift' => 'la jornada', 'tutor_user_id' => 'el tutor',
@@ -106,7 +107,7 @@ class CourseController extends Controller
         $data['parallel'] = mb_strtoupper(trim($data['parallel']));
         $data['level'] = trim($data['level']);
 
-        $duplicate = Course::where('academic_period_id', $data['academic_period_id'])
+        $duplicate = Course::withoutInstitutionScope()->where('institution_id', auth()->user()->institution_id)->where('academic_period_id', $data['academic_period_id'])
             ->where('level', $data['level'])->where('parallel', $data['parallel'])->where('shift', $data['shift'])
             ->when($course, fn ($q) => $q->whereKeyNot($course->id))->exists();
         if ($duplicate) {

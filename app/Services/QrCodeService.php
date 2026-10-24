@@ -14,8 +14,11 @@ use BaconQrCode\Writer;
  */
 class QrCodeService
 {
-    /** URL que se codificará, o null si la configuración no es válida. */
-    public function targetUrl(): ?string
+    /**
+     * URL que se codificará para la institución, o null si la configuración no es válida.
+     * Formato: {QR_URL_PUBLICA}/i/{slug} (o /i/{slug}/reportar si QR_DESTINO=formulario).
+     */
+    public function targetUrl(?\App\Models\Institution $institution = null): ?string
     {
         $base = rtrim((string) config('seguridad_escolar.qr.url_publica'), '/');
         if ($base === '' || ! filter_var($base, FILTER_VALIDATE_URL)) {
@@ -25,15 +28,16 @@ class QrCodeService
         if (! in_array($scheme, ['http', 'https'], true)) {
             return null;
         }
-        $path = config('seguridad_escolar.qr.destino') === 'formulario' ? '/reportar' : '/';
+        $institution ??= app(\App\Support\TenantContext::class)->institution() ?? \App\Models\Institution::default();
+        $path = '/i/'.$institution->slug.(config('seguridad_escolar.qr.destino') === 'formulario' ? '/reportar' : '');
 
-        return $base.($path === '/' ? '/' : $path);
+        return $base.$path;
     }
 
     /** Advertencias sobre la URL configurada (no bloquean la generación). */
-    public function warnings(): array
+    public function warnings(?\App\Models\Institution $institution = null): array
     {
-        $url = $this->targetUrl();
+        $url = $this->targetUrl($institution);
         if (! $url) {
             return [];
         }

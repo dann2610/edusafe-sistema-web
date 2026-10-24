@@ -2,10 +2,10 @@
                 lead="Los casos urgentes aparecen primero. Use los filtros para ubicar casos específicos."
                 :breadcrumbs="['Bandeja de casos' => null]">
     <div class="row g-3 mb-3">
-        @foreach ([['Nuevos', $counts->nuevos, 'registrado', '#6c757d'], ['Urgentes abiertos', $counts->urgentes, null, '#b42318'], ['Abiertos', $counts->abiertos, 'abiertos', 'var(--tic-teal)'], ['Derivados', $counts->derivados, 'derivado', '#212529']] as [$label, $n, $estado, $color])
+        @foreach ([['Nuevos', $counts->nuevos, 'registrado', '#6c757d'], ['Urgentes abiertos', $counts->urgentes, null, '#b42318'], ['Abiertos', $counts->abiertos, 'abiertos', 'var(--c-teal)'], ['Derivados', $counts->derivados, 'derivado', '#212529']] as [$label, $n, $estado, $color])
             <div class="col-6 col-lg-3">
-                <a href="{{ $estado ? route('casos.inbox', ['estado' => $estado]) : route('casos.inbox', ['prioridad' => 'urgente']) }}" class="card stat-card h-100 text-decoration-none" style="border-left-color:{{ $color }}">
-                    <div class="card-body py-3"><div class="stat-value">{{ $n }}</div><div class="stat-label">{{ $label }}</div></div>
+                <a href="{{ $estado ? route('casos.inbox', ['estado' => $estado]) : route('casos.inbox', ['prioridad' => 'urgente']) }}" class="card stat-card h-100 text-decoration-none" style="--accent: {{ $color }}">
+                    <div class="card-body py-3"><span class="stat-accent" aria-hidden="true"></span><div class="stat-value">{{ $n }}</div><div class="stat-label">{{ $label }}</div></div>
                 </a>
             </div>
         @endforeach

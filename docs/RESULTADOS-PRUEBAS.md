@@ -1,17 +1,18 @@
 # Resultados de pruebas automatizadas
 
-Ejecutadas el 22/10/2026 con PHP 8.3.6 y PostgreSQL 16 mediante `composer test` (equivalente a `php vendor/bin/phpunit --testdox`).
+Ejecutadas el 23/10/2026 con PHP 8.3.6 y PostgreSQL 16 mediante `composer test` (equivalente a `php vendor/bin/phpunit --testdox`). Salida completa, sin editar:
 
 ```
 PHPUnit 11.5.57 by Sebastian Bergmann and contributors.
 
 Runtime:       PHP 8.3.6
-Configuration: /home/claude/tic-ues/phpunit.xml
+Configuration: phpunit.xml
 
-...............................................................  63 / 111 ( 56%)
-................................................                111 / 111 (100%)
+...............................................................  63 / 132 ( 47%)
+............................................................... 126 / 132 ( 95%)
+......                                                          132 / 132 (100%)
 
-Time: 00:07.394, Memory: 66.50 MB
+Time: 00:10.747, Memory: 70.50 MB
 
 Audit Logger Sanitize (Tests\Unit\AuditLoggerSanitize)
  ✔ Elimina claves sensibles incluso anidadas
@@ -69,6 +70,7 @@ Case Status (Tests\Unit\CaseStatus)
 
 Catalog And Qr (Tests\Feature\Modules\CatalogAndQr)
  ✔ El administrador gestiona categorias sin eliminarlas
+ ✔ Campos adicionales tipados y sin codigo
  ✔ Los catalogos estan restringidos al administrador
  ✔ Periodo vigente unico y cursos sin duplicados
  ✔ Registro e importacion atomica de estudiantes
@@ -119,6 +121,21 @@ Incident Registration (Tests\Feature\Modules\IncidentRegistration)
  ✔ Quien reporta ve su reporte pero no el expediente ni reportes ajenos
  ✔ Roles sin permiso no pueden registrar
 
+Multi Institution (Tests\Feature\Modules\MultiInstitution)
+ ✔ Los casos de otra institucion no se ven ni por url
+ ✔ Adjuntos de otra institucion no se descargan
+ ✔ No se pueden asignar usuarios ni estudiantes de otra institucion
+ ✔ El administrador solo gestiona usuarios y categorias de su institucion
+ ✔ Conteos del dashboard y reportes solo de la institucion
+ ✔ Un modulo desactivado bloquea rutas y menu
+ ✔ Dependencias y modulos no implementados
+ ✔ El superadministrador registra instituciones sin duplicados
+ ✔ Suspender bloquea el acceso y la pagina publica sin borrar datos
+ ✔ El superadministrador no abre expedientes
+ ✔ Quien registro agrega informacion y el asignado escala
+ ✔ Requisitos de cierre configurados por la institucion
+ ✔ El formulario publico de cada institucion crea casos en ella
+
 Password (Tests\Feature\Sprint1\Password)
  ✔ La solicitud de recuperacion envia el enlace a cuentas activas
  ✔ La respuesta es identica para correos inexistentes y cuentas inactivas
@@ -129,13 +146,20 @@ Password (Tests\Feature\Sprint1\Password)
 
 Public Report (Tests\Feature\Modules\PublicReport)
  ✔ La pagina publica muestra lo necesario sin iniciar sesion
- ✔ El boton reportar abre un formulario funcional
+ ✔ El formulario tiene los pasos y las categorias activas
  ✔ Un reporte publico valido crea el caso y notifica al dece
- ✔ Exige aceptar privacidad y campos obligatorios
+ ✔ Acepta fecha desconocida
+ ✔ Exige aceptar privacidad confirmar y campos obligatorios
+ ✔ Reporte sin contacto solo si la institucion lo permite
  ✔ Bloquea robots por campo trampa y envio inmediato
- ✔ Limita la cantidad de reportes por ip
- ✔ Si se deshabilita el canal publico no acepta reportes
+ ✔ Limita la cantidad de reportes segun la institucion
+ ✔ Si se desactiva el modulo el canal publico no existe
  ✔ Solo acepta categorias habilitadas para el publico
+ ✔ Evidencias solo con el modulo activo
+ ✔ Campos adicionales de la categoria se validan y se guardan
+ ✔ Consulta de estado con codigo y clave
+ ✔ La consulta de estado limita intentos
+ ✔ Una institucion no activa no tiene pagina publica
 
 User Management (Tests\Feature\Sprint1\UserManagement)
  ✔ El listado permite buscar y filtrar
@@ -150,5 +174,5 @@ User Management (Tests\Feature\Sprint1\UserManagement)
  ✔ Genera contrasena temporal nueva y obliga a cambiarla
  ✔ El administrador tecnico no tiene acceso a expedientes
 
-OK (111 tests, 751 assertions)
+OK (132 tests, 996 assertions)
 ```

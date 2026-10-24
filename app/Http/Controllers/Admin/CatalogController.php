@@ -6,6 +6,7 @@ use App\Enums\AuditResult;
 use App\Http\Controllers\Controller;
 use App\Services\AuditLogger;
 use App\Support\CatalogRegistry;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,19 +14,43 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /**
- * Administración genérica de catálogos simples (ver CatalogRegistry).
- * Protegido por el permiso catalogos.gestionar en las rutas.
+ * Catálogos simples (entidades externas, tipos de medida, tipos de actuación).
+ * - Superadministrador: administra los registros GLOBALES.
+ * - Administrador institucional: administra los LOCALES; los globales son de solo lectura.
+ * Los registros no se eliminan: se desactivan.
  */
 class CatalogController extends Controller
 {
     public function __construct(private readonly AuditLogger $audit) {}
+
+    private function platform(Request $request): bool
+    {
+        return $request->user()->isSuperadmin();
+    }
+
+    private function prefix(Request $request): string
+    {
+        return $this->platform($request) ? 'platform.catalogos' : 'admin.catalogos';
+    }
+
+    private function query(Request $request, array $def): Builder
+    {
+        return $this->platform($request)
+            ? $def['model']::withoutInstitutionScope()->whereNull('institution_id')
+            : $def['model']::query();
+    }
+
+    private function editable(Request $request, Model $item): bool
+    {
+        return $this->platform($request) ? $item->isGlobal() : $item->isOwnedBy($request->user()->institution_id);
+    }
 
     public function index(Request $request, string $catalog): View
     {
         $def = CatalogRegistry::get($catalog);
         $search = trim((string) $request->query('q', ''));
 
-        $query = $def['model']::query()
+        $query = $this->query($request, $def)
             ->when($search !== '', function ($q) use ($search) {
                 $like = '%'.mb_strtolower(str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search)).'%';
                 $q->whereRaw('LOWER(name) LIKE ?', [$like]);
@@ -39,14 +64,15 @@ class CatalogController extends Controller
             'def' => $def,
             'items' => $query->paginate(20)->withQueryString(),
             'search' => $search,
+            'prefix' => $this->prefix($request),
+            'platform' => $this->platform($request),
+            'institutionId' => $request->user()->institution_id,
         ]);
     }
 
-    public function create(string $catalog): View
+    public function create(Request $request, string $catalog): View
     {
-        $def = CatalogRegistry::get($catalog);
-
-        return view('admin.catalogs.form', ['def' => $def, 'item' => null]);
+        return view('admin.catalogs.form', ['def' => CatalogRegistry::get($catalog), 'item' => null, 'prefix' => $this->prefix($request)]);
     }
 
     public function store(Request $request, string $catalog): RedirectResponse
@@ -54,32 +80,36 @@ class CatalogController extends Controller
         $def = CatalogRegistry::get($catalog);
         $data = $this->validated($request, $def);
 
-        $item = DB::transaction(function () use ($def, $data) {
+        $item = DB::transaction(function () use ($request, $def, $data) {
             $item = new $def['model'];
             $item->fill($data);
+            $item->institution_id = $this->platform($request) ? null : $request->user()->institution_id;
+            $item->creatingGlobal = $this->platform($request);
             $item->is_active = true;
             $item->save();
-            $this->audit->mustLog('catalogo_creado', AuditResult::Exito, $item, ['catalogo' => $def['key']]);
+            $this->audit->mustLog('catalogo_creado', AuditResult::Exito, $item, ['catalogo' => $def['key'], 'ambito' => $item->isGlobal() ? 'global' : 'local']);
 
             return $item;
         });
 
-        return redirect()->route('admin.catalogos.index', $catalog)
-            ->with('success', "«{$item->name}» se registró correctamente.");
+        return redirect()->route($this->prefix($request).'.index', $catalog)->with('success', "«{$item->name}» se registró correctamente.");
     }
 
-    public function edit(string $catalog, int $id): View
+    public function edit(Request $request, string $catalog, int $id): View
     {
         $def = CatalogRegistry::get($catalog);
+        $item = $this->query($request, $def)->findOrFail($id);
+        abort_unless($this->editable($request, $item), 403);
 
-        return view('admin.catalogs.form', ['def' => $def, 'item' => $def['model']::findOrFail($id)]);
+        return view('admin.catalogs.form', ['def' => $def, 'item' => $item, 'prefix' => $this->prefix($request)]);
     }
 
     public function update(Request $request, string $catalog, int $id): RedirectResponse
     {
         $def = CatalogRegistry::get($catalog);
         /** @var Model $item */
-        $item = $def['model']::findOrFail($id);
+        $item = $this->query($request, $def)->findOrFail($id);
+        abort_unless($this->editable($request, $item), 403);
         $data = $this->validated($request, $def, $item->id);
 
         DB::transaction(function () use ($item, $data, $def) {
@@ -91,13 +121,14 @@ class CatalogController extends Controller
             }
         });
 
-        return redirect()->route('admin.catalogos.index', $catalog)->with('success', 'Cambios guardados correctamente.');
+        return redirect()->route($this->prefix($request).'.index', $catalog)->with('success', 'Cambios guardados correctamente.');
     }
 
-    public function toggle(string $catalog, int $id): RedirectResponse
+    public function toggle(Request $request, string $catalog, int $id): RedirectResponse
     {
         $def = CatalogRegistry::get($catalog);
-        $item = $def['model']::findOrFail($id);
+        $item = $this->query($request, $def)->findOrFail($id);
+        abort_unless($this->editable($request, $item), 403);
 
         DB::transaction(function () use ($item, $def) {
             $item->is_active = ! $item->is_active;
@@ -112,7 +143,6 @@ class CatalogController extends Controller
 
     private function validated(Request $request, array $def, ?int $ignoreId = null): array
     {
-        // Las casillas no marcadas no se envían: se normalizan a false
         $input = $request->all();
         foreach ($def['fields'] as $name => $f) {
             if ($f['type'] === 'checkbox') {
@@ -123,7 +153,8 @@ class CatalogController extends Controller
             }
         }
         $attributes = collect($def['fields'])->mapWithKeys(fn ($f, $k) => [$k => mb_strtolower($f['label'])])->all();
+        $institutionId = $this->platform($request) ? null : $request->user()->institution_id;
 
-        return validator($input, CatalogRegistry::rules($def, $ignoreId), [], $attributes)->validate();
+        return validator($input, CatalogRegistry::rules($def, $ignoreId, $institutionId), [], $attributes)->validate();
     }
 }

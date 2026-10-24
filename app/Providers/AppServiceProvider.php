@@ -3,11 +3,14 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Services\ModuleService;
+use App\Support\TenantContext;
 use App\Support\PermissionCatalog;
 use Carbon\Carbon;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
@@ -18,7 +21,8 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->singleton(TenantContext::class);
+        $this->app->singleton(ModuleService::class);
     }
 
     public function boot(): void
@@ -45,9 +49,22 @@ class AppServiceProvider extends ServiceProvider
         // Límite para solicitudes de recuperación de contraseña (por IP)
         RateLimiter::for('password-reset', fn (Request $request) => Limit::perMinute(3)->by($request->ip()));
 
-        // Límite de reportes públicos por IP y por hora (configurable)
-        RateLimiter::for('public-report', fn (Request $request) => Limit::perHour(
-            max(1, (int) config('seguridad_escolar.reportes_publicos.limite_por_hora', 5))
-        )->by($request->ip())->response(fn () => response()->view('errors.429', [], 429)));
+        // Límite de reportes públicos por IP, institución y hora (configurable por institución)
+        RateLimiter::for('public-report', function (Request $request) {
+            // Se resuelve desde la ruta: el limitador puede ejecutarse antes que el middleware de institución
+            $param = $request->route('institution');
+            $institution = $param instanceof \App\Models\Institution ? $param
+                : ($param ? \App\Models\Institution::where('slug', $param)->first() : \App\Models\Institution::default());
+            $limit = $institution?->public_report_hourly_limit ?? (int) config('seguridad_escolar.reportes_publicos.limite_por_hora', 5);
+
+            return Limit::perHour(max(1, $limit))->by($request->ip().'|'.($institution?->id ?? 0))
+                ->response(fn () => response()->view('errors.429', [], 429));
+        });
+
+        // Consulta pública de estado: limita intentos para impedir adivinar claves
+        RateLimiter::for('status-lookup', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
+
+        // @module('dashboard') ... @endmodule
+        Blade::if('module', fn (string $key) => app(ModuleService::class)->enabled($key));
     }
 }

@@ -14,19 +14,22 @@
                         <dt class="col-sm-4">Quien reporta</dt>
                         <dd class="col-sm-8">
                             {{ $incident->reporter_relationship?->label() ?? '—' }}
-                            @if ($incident->reporter_contact_name || $incident->reporter_contact)
+                            @if ($incident->reporter_mode === 'sin_contacto')
+                                <div class="text-secondary">Eligió reportar sin datos de contacto</div>
+                            @elseif ($incident->reporter_contact_name || $incident->reporter_contact)
                                 <div>{{ $incident->reporter_contact_name }} {{ $incident->reporter_contact ? '· '.$incident->reporter_contact : '' }}</div>
                             @else
                                 <div class="text-secondary">Sin datos de contacto</div>
                             @endif
                         </dd>
                     @endif
-                    <dt class="col-sm-4">Fecha del hecho</dt><dd class="col-sm-8">{{ $incident->occurred_at?->format('d/m/Y H:i') ?? 'No indicada' }} <span class="text-secondary">(aprox.)</span></dd>
+                    <dt class="col-sm-4">Fecha del hecho</dt><dd class="col-sm-8">{{ $incident->occurredLabel() }} <span class="text-secondary">(aprox.)</span></dd>
                     <dt class="col-sm-4">Lugar</dt><dd class="col-sm-8">{{ $incident->location ?? '—' }}</dd>
                     <dt class="col-sm-4">Curso</dt><dd class="col-sm-8">{{ $incident->course?->display_name ?? '—' }}</dd>
                     <dt class="col-sm-4">Periodo</dt><dd class="col-sm-8">{{ $incident->academicPeriod?->name ?? '—' }}</dd>
                     <dt class="col-sm-4">Riesgo inmediato</dt>
                     <dd class="col-sm-8">@if ($incident->immediate_risk)<span class="badge text-bg-danger">Comunicado</span>@else No @endif</dd>
+                    @include('cases.partials._report-details')
                     @if ($incident->closed_at)
                         <dt class="col-sm-4">Cerrado</dt><dd class="col-sm-8">{{ $incident->closed_at->format('d/m/Y H:i') }}</dd>
                     @endif
@@ -39,6 +42,8 @@
                 @endif
             </div>
         </div>
+
+        @include('cases.partials.notes', ['noteForm' => false])
 
         <div class="card mb-3">
             <div class="card-header">Personas involucradas</div>
@@ -112,6 +117,19 @@
     </div>
 
     <div class="col-xl-5">
+        @can('escalate', $incident)
+            <div class="card mb-3 border-warning-subtle">
+                <div class="card-header"><i class="bi bi-arrow-up-circle" aria-hidden="true"></i>Escalar al DECE</div>
+                <div class="card-body">
+                    <p class="small text-secondary">Úselo si la situación supera lo que puede atender o requiere una decisión del DECE. Se notifica al equipo y queda en el historial.</p>
+                    <form method="POST" action="{{ route('casos.escalate', $incident) }}" novalidate data-confirm="Se notificará al DECE con el motivo indicado." data-confirm-title="Escalar el caso" data-confirm-ok="Escalar">
+                        @csrf
+                        <x-form.textarea name="reason" label="Motivo" required rows="2" maxlength="400" />
+                        <button type="submit" class="btn btn-outline-primary btn-sm">Escalar al DECE</button>
+                    </form>
+                </div>
+            </div>
+        @endcan
         @if ($canManage)
             <div class="card mb-3">
                 <div class="card-header"><i class="bi bi-arrow-left-right me-1" aria-hidden="true"></i>Cambiar estado</div>

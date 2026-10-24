@@ -29,7 +29,13 @@ trait CreatesCases
 
     protected function period(): AcademicPeriod
     {
-        $period = AcademicPeriod::current() ?? AcademicPeriod::create(['name' => 'Prueba 2026', 'starts_on' => '2026-05-01', 'ends_on' => '2027-02-28', 'is_active' => true]);
+        $institutionId = app(\App\Support\TenantContext::class)->id() ?? \App\Models\Institution::default()->id;
+        $period = AcademicPeriod::current($institutionId);
+        if (! $period) {
+            $period = new AcademicPeriod(['name' => 'Prueba 2026', 'starts_on' => '2026-05-01', 'ends_on' => '2027-02-28', 'is_active' => true]);
+            $period->institution_id = $institutionId;
+            $period->save();
+        }
         if (! $period->is_current) {
             $period->markAsCurrent();
         }
@@ -39,15 +45,17 @@ trait CreatesCases
 
     protected function course(): Course
     {
-        return Course::firstOrCreate(
-            ['academic_period_id' => $this->period()->id, 'level' => '8.º EGB', 'parallel' => 'A', 'shift' => 'matutina'],
+        $period = $this->period();
+
+        return Course::withoutInstitutionScope()->firstOrCreate(
+            ['institution_id' => $period->institution_id, 'academic_period_id' => $period->id, 'level' => '8.º EGB', 'parallel' => 'A', 'shift' => 'matutina'],
             ['is_active' => true],
         );
     }
 
     protected function enrolledStudent(): Student
     {
-        $student = Student::factory()->create();
+        $student = Student::factory()->create(['institution_id' => $this->period()->institution_id]);
         Enrollment::create(['student_id' => $student->id, 'course_id' => $this->course()->id, 'academic_period_id' => $this->period()->id]);
 
         return $student;
@@ -55,7 +63,7 @@ trait CreatesCases
 
     protected function category(string $code = 'ACOSO'): IncidentCategory
     {
-        return IncidentCategory::where('code', $code)->firstOrFail();
+        return IncidentCategory::withoutInstitutionScope()->whereNull('institution_id')->where('code', $code)->firstOrFail();
     }
 
     protected function incident(?User $reporter = null, array $data = [], array $participants = []): Incident

@@ -19,6 +19,8 @@ enum CaseEventType: string
     case Adjunto = 'adjunto';
     case Cerrado = 'cerrado';
     case Reabierto = 'reabierto';
+    case InformacionAdicional = 'informacion_adicional';
+    case Escalado = 'escalado';
 
     public function label(): string
     {
@@ -37,6 +39,8 @@ enum CaseEventType: string
             self::Adjunto => 'Evidencia adjuntada',
             self::Cerrado => 'Caso cerrado',
             self::Reabierto => 'Caso reabierto',
+            self::InformacionAdicional => 'Información adicional de quien reportó',
+            self::Escalado => 'Escalado al DECE',
         };
     }
 

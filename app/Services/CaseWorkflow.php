@@ -9,6 +9,7 @@ use App\Enums\CasePriority;
 use App\Enums\CaseStatus;
 use App\Enums\ComplianceStatus;
 use App\Enums\ReferralStatus;
+use App\Enums\RoleSlug;
 use App\Models\CaseAssignment;
 use App\Models\CaseEvent;
 use App\Models\CaseStatusHistory;
@@ -18,7 +19,9 @@ use App\Models\IncidentParticipant;
 use App\Models\ProtectiveMeasure;
 use App\Models\Referral;
 use App\Models\User;
+use App\Models\IncidentNote;
 use App\Notifications\CaseAssignedNotification;
+use App\Notifications\CaseMessageNotification;
 use App\Notifications\CaseStatusChangedNotification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
@@ -53,6 +56,9 @@ class CaseWorkflow
         }
         if ($target === CaseStatus::Cerrado && blank($closureSummary)) {
             throw ValidationException::withMessages(['closure_summary' => 'Para cerrar el caso debe registrar un resumen de cierre.']);
+        }
+        if ($target === CaseStatus::Cerrado) {
+            $this->ensureClosingRequirements($incident);
         }
 
         DB::transaction(function () use ($incident, $from, $target, $actor, $justification, $closureSummary) {
@@ -110,7 +116,7 @@ class CaseWorkflow
     public function assign(Incident $incident, User $assignee, AssignmentRole $role, User $actor, ?string $notes = null): CaseAssignment
     {
         $this->ensureOpen($incident);
-        if (! $assignee->is_active || ! $assignee->hasPermission('seguimientos.registrar')) {
+        if (! $assignee->is_active || $assignee->institution_id !== $incident->institution_id || ! $assignee->hasPermission('seguimientos.registrar')) {
             throw ValidationException::withMessages(['user_id' => 'La persona seleccionada no puede ser responsable de casos.']);
         }
         if ($incident->isAssignedTo($assignee)) {
@@ -317,7 +323,73 @@ class CaseWorkflow
         });
     }
 
+    // ------------------------------------------- información de quien reportó
+
+    /** @param array<int, UploadedFile> $files */
+    public function addNote(Incident $incident, User $actor, string $body, array $files = []): IncidentNote
+    {
+        $this->ensureOpen($incident);
+
+        $note = DB::transaction(function () use ($incident, $actor, $body, $files) {
+            $note = $incident->notes()->make(['body' => $body]);
+            $note->user_id = $actor->id;
+            $note->save();
+            foreach ($files as $file) {
+                $this->storage->store($file, $incident, $incident, $actor);
+            }
+            $summary = 'Quien registró el caso aportó información adicional'.($files ? ' y '.count($files).' archivo(s)' : '');
+            $this->event($incident, CaseEventType::InformacionAdicional, $actor, $summary, $note);
+            $this->audit->mustLog('informacion_adicional', AuditResult::Exito, $incident, ['archivos' => count($files)], $actor);
+
+            return $note;
+        });
+
+        $this->notifyCaseTeam($incident, $actor, 'informacion', 'Hay información adicional en el caso '.$incident->code);
+
+        return $note;
+    }
+
+    /** Un responsable asignado solicita la intervención del DECE. */
+    public function escalate(Incident $incident, User $actor, string $reason): void
+    {
+        $this->ensureOpen($incident);
+
+        DB::transaction(function () use ($incident, $actor, $reason) {
+            $this->event($incident, CaseEventType::Escalado, $actor, 'Escalado al DECE por '.$actor->name.'. Motivo: '.$reason);
+            $this->audit->mustLog('caso_escalado', AuditResult::Exito, $incident, [], $actor);
+        });
+
+        $dece = User::active()->ofInstitution($incident->institution_id)->withRole(RoleSlug::Dece)->get()
+            ->reject(fn ($u) => $u->id === $actor->id);
+        Notification::send($dece, new CaseMessageNotification($incident, 'escalado', $actor->name.' solicitó la intervención del DECE en el caso '.$incident->code));
+    }
+
     // ------------------------------------------------------------------ apoyo
+
+    /** Requisitos de cierre configurados por la institución. */
+    private function ensureClosingRequirements(Incident $incident): void
+    {
+        $institution = $incident->institution;
+        if (! $institution) {
+            return;
+        }
+        if ($institution->close_requires_followup && ! $incident->followUps()->exists()) {
+            throw ValidationException::withMessages(['status' => 'Su institución exige al menos un seguimiento registrado antes de cerrar el caso.']);
+        }
+        if ($institution->close_requires_measures_resolved
+            && $incident->measures()->whereIn('compliance_status', [ComplianceStatus::Pendiente->value, ComplianceStatus::EnEjecucion->value])->exists()) {
+            throw ValidationException::withMessages(['status' => 'Su institución exige que todas las medidas estén cumplidas, incumplidas o suspendidas antes de cerrar el caso.']);
+        }
+    }
+
+    /** Aviso al DECE y a los responsables activos (excepto quien actúa). */
+    private function notifyCaseTeam(Incident $incident, User $actor, string $type, string $message): void
+    {
+        $dece = User::active()->ofInstitution($incident->institution_id)->withRole(RoleSlug::Dece)->get();
+        $assigned = $incident->activeAssignments()->with('user')->get()->pluck('user');
+        $recipients = $dece->concat($assigned)->filter(fn ($u) => $u && $u->is_active && $u->id !== $actor->id)->unique('id');
+        Notification::send($recipients, new CaseMessageNotification($incident, $type, $message));
+    }
 
     private function ensureOpen(Incident $incident): void
     {

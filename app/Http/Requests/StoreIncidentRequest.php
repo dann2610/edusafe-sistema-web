@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\ScopedRule;
 use App\Enums\ParticipantRole;
 use App\Models\AcademicPeriod;
 use App\Services\AttachmentStorage;
@@ -30,18 +31,31 @@ class StoreIncidentRequest extends FormRequest
         $current = AcademicPeriod::current();
 
         return [
-            'incident_category_id' => ['required', 'integer', Rule::exists('incident_categories', 'id')->where('is_active', true)],
-            'course_id' => ['nullable', 'integer', Rule::exists('courses', 'id')->where('academic_period_id', $current?->id ?? 0)],
+            'incident_category_id' => ['required', 'integer', ScopedRule::ownOrGlobal('incident_categories')->where('is_active', true)],
+            'course_id' => ['nullable', 'integer', ScopedRule::own('courses')->where('academic_period_id', $current?->id ?? 0)],
             'occurred_at' => ['nullable', 'date', 'before_or_equal:now'],
             'location' => ['nullable', 'string', 'max:255'],
             'description' => ['required', 'string', 'min:20', 'max:5000'],
             'immediate_risk' => ['nullable', 'boolean'],
+            'is_ongoing' => ['nullable', Rule::in(['si', 'no', 'no_sabe'])],
             'participants' => ['array', 'max:10'],
-            'participants.*.student_id' => ['nullable', 'integer', Rule::exists('students', 'id')->where('is_active', true)],
+            'participants.*.student_id' => ['nullable', 'integer', ScopedRule::own('students')->where('is_active', true)],
             'participants.*.non_student_description' => ['nullable', 'string', 'max:150'],
             'participants.*.role' => ['required', Rule::enum(ParticipantRole::class)],
             'participants.*.notes' => ['nullable', 'string', 'max:500'],
-        ] + AttachmentStorage::validationRules();
+        ] + AttachmentStorage::validationRules() + $this->extraRules();
+    }
+
+    /** Reglas de los campos adicionales activos de la categoría elegida. */
+    private function extraRules(): array
+    {
+        $category = \App\Models\IncidentCategory::find($this->integer('incident_category_id'));
+        $rules = [];
+        foreach ($category?->activeFields()->get() ?? [] as $field) {
+            $rules['extra.'.$field->key] = $field->rules();
+        }
+
+        return $rules;
     }
 
     public function attributes(): array
@@ -54,7 +68,8 @@ class StoreIncidentRequest extends FormRequest
             'participants.*.notes' => 'las observaciones del involucrado',
             'attachments' => 'las evidencias',
             'attachments.*' => 'la evidencia',
-        ];
+        ] + collect(\App\Models\IncidentCategory::find($this->integer('incident_category_id'))?->activeFields()->get() ?? [])
+            ->mapWithKeys(fn ($f) => ['extra.'.$f->key => '«'.$f->label.'»'])->all();
     }
 
     public function messages(): array

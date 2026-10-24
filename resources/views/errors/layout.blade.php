@@ -13,7 +13,7 @@
 <main class="auth-wrapper">
     <div class="card auth-card text-center">
         <div class="card-body">
-            <div class="display-6 fw-bold mb-2" style="color:var(--tic-teal)">@yield('code')</div>
+            <div class="display-6 fw-bold mb-2" style="color:var(--c-teal)">@yield('code')</div>
             <h1 class="auth-title mb-2">@yield('title')</h1>
             <p class="text-secondary mb-4">@yield('message')</p>
             @auth

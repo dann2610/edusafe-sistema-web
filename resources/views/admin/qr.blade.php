@@ -1,5 +1,5 @@
 <x-layouts.app title="Código QR" heading="Código QR institucional"
-                lead="Lleva a la página pública de la institución. No contiene datos personales ni contraseñas."
+                :lead="'Lleva a la página pública de '.auth()->user()->institution?->name.'. No contiene datos personales ni contraseñas. Es distinto del QR oficial de la Policía, que no se modifica.'"
                 :breadcrumbs="['Código QR' => null]">
     <div class="row g-3">
         <div class="col-lg-5">

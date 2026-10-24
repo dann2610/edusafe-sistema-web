@@ -87,7 +87,7 @@ class AcademicPeriodController extends Controller
     private function validated(Request $request, ?AcademicPeriod $period = null): array
     {
         return $request->validate([
-            'name' => ['required', 'string', 'max:50', Rule::unique('academic_periods', 'name')->ignore($period?->id)],
+            'name' => ['required', 'string', 'max:50', Rule::unique('academic_periods', 'name')->where('institution_id', auth()->user()->institution_id)->ignore($period?->id)],
             'starts_on' => ['required', 'date'],
             'ends_on' => ['required', 'date', 'after:starts_on'],
         ], [], ['name' => 'el nombre', 'starts_on' => 'la fecha de inicio', 'ends_on' => 'la fecha de finalización']);

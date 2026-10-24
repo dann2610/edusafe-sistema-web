@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Support\ScopedRule;
 use App\Enums\AuditResult;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicPeriod;
@@ -168,7 +169,7 @@ class StudentController extends Controller
 
         $count = DB::transaction(function () use ($rows) {
             foreach ($rows as $r) {
-                $student = Student::updateOrCreate(['institutional_code' => $r['code']], ['first_names' => $r['first'], 'last_names' => $r['last']]);
+                $student = Student::updateOrCreate(['institutional_code' => $r['code'], 'institution_id' => auth()->user()->institution_id], ['first_names' => $r['first'], 'last_names' => $r['last']]);
                 if ($r['course'] !== '') {
                     $this->syncEnrollment($student, (int) $r['course']);
                 }
@@ -210,10 +211,10 @@ class StudentController extends Controller
     {
         $current = AcademicPeriod::current();
         $data = $request->validate([
-            'institutional_code' => ['required', 'string', 'max:30', Rule::unique('students', 'institutional_code')->ignore($student?->id)],
+            'institutional_code' => ['required', 'string', 'max:30', Rule::unique('students', 'institutional_code')->where('institution_id', auth()->user()->institution_id)->ignore($student?->id)],
             'first_names' => ['required', 'string', 'max:100'],
             'last_names' => ['required', 'string', 'max:100'],
-            'course_id' => ['nullable', 'integer', Rule::exists('courses', 'id')->where('academic_period_id', $current?->id ?? 0)],
+            'course_id' => ['nullable', 'integer', ScopedRule::own('courses')->where('academic_period_id', $current?->id ?? 0)],
         ], [], [
             'institutional_code' => 'el código institucional', 'first_names' => 'los nombres',
             'last_names' => 'los apellidos', 'course_id' => 'el curso',

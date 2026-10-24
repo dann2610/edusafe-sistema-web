@@ -11,6 +11,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <title>{{ $title ? $title.' · ' : '' }}{{ $systemName }}</title>
+    <link rel="preload" href="{{ asset('vendor/inter/inter-latin-wght-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap/css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
@@ -28,7 +29,7 @@
         <span class="app-brand-mark" aria-hidden="true"><i class="bi bi-shield-check"></i></span>
         <span class="d-none d-sm-inline">
             {{ $systemName }}
-            <small>{{ config('seguridad_escolar.institucion.nombre') }}</small>
+            <small>{{ $user->institution?->name ?? 'Administración de la plataforma' }}</small>
         </span>
         <span class="d-sm-none">TIC · UES</span>
     </a>

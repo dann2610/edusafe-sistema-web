@@ -49,12 +49,22 @@ class LoginRequest extends FormRequest
             throw ValidationException::withMessages(['email' => __('auth.failed')]);
         }
 
-        if (! $user->is_active || $user->role_id === null) {
+        $reason = match (true) {
+            ! $user->is_active => 'cuenta_desactivada',
+            $user->role_id === null => 'sin_rol',
+            $user->institution_id === null && ! $user->isSuperadmin() => 'sin_rol',
+            $user->institution_id !== null && ! $user->institution?->status->allowsStaffLogin() => 'institucion_no_disponible',
+            default => null,
+        };
+        if ($reason) {
             RateLimiter::hit($this->throttleKey(), $this->decaySeconds());
-            $reason = $user->is_active ? 'sin_rol' : 'cuenta_desactivada';
             $audit->denied('inicio_sesion_fallido', $user, ['motivo' => $reason], $user);
 
-            throw ValidationException::withMessages(['email' => $user->is_active ? __('auth.no_role') : __('auth.inactive')]);
+            throw ValidationException::withMessages(['email' => match ($reason) {
+                'cuenta_desactivada' => __('auth.inactive'),
+                'institucion_no_disponible' => __('auth.institution_unavailable'),
+                default => __('auth.no_role'),
+            }]);
         }
 
         RateLimiter::clear($this->throttleKey());

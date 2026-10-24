@@ -35,8 +35,12 @@ class SendFollowUpRemindersCommand extends Command
             ->whereHas('incident', fn ($q) => $q->open())
             ->get();
 
+        $modules = app(\App\Services\ModuleService::class);
         $sent = 0;
         foreach ($due as $followUp) {
+            if (! $modules->enabled('recordatorios', $followUp->incident->institution_id)) {
+                continue; // módulo desactivado para esa institución
+            }
             // Si ya existe un seguimiento posterior, el pendiente se considera atendido
             $newer = FollowUp::where('incident_id', $followUp->incident_id)->where('performed_at', '>', $followUp->performed_at)->exists();
             if ($newer || ! $followUp->user?->is_active) {

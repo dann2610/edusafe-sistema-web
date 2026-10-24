@@ -30,6 +30,14 @@ routes/web.php                 87 rutas: públicas, de autenticación y privadas
 tests/                         111 pruebas: unitarias y de funcionalidad
 ```
 
+## 2.1 Multiinstitución y módulos
+
+- `institutions` + `institution_id` en usuarios, periodos, cursos, estudiantes, casos, catálogos y bitácora. El trait `BelongsToInstitution` aplica un alcance global con la institución de `TenantContext` (usuario autenticado o página pública); los catálogos aceptan además registros globales (`institution_id` NULL). Las reglas `exists` usan `ScopedRule`, y las Policies verifican la misma institución.
+- `ResetRequestState` limpia el contexto en cada petición; `ResolvePublicInstitution` lo fija en las páginas públicas (`/i/{slug}`), que solo existen para instituciones activas.
+- Módulos: `App\Support\ModuleCatalog` es la fuente de verdad; `ModuleService::enabled()` exige implementado ∧ habilitado en la plataforma ∧ autorizado ∧ activado ∧ dependencias. Middleware `module:clave` (404) y directiva `@module`.
+- Categorías: `incident_category_fields` define campos tipados (`FieldType`), validados con reglas del servidor; el caso guarda una copia de etiqueta y valor en `extra_data`, por lo que cambiar o desactivar un campo no altera reportes anteriores.
+- Interfaz: `public/css/app.css` (tokens y componentes), Inter en `public/vendor/inter` (licencia OFL incluida), `public/js/app.js` (diálogo de confirmación con `data-confirm`, asistente por pasos con mejora progresiva). La CSP no permite scripts en línea.
+
 ## 3. Seguridad implementada
 
 | Control | Implementación |

@@ -21,6 +21,7 @@ class QrController extends Controller
             'configured' => (string) config('seguridad_escolar.qr.url_publica'),
             'destination' => config('seguridad_escolar.qr.destino'),
             'warnings' => $this->qr->warnings(),
+            'institution' => auth()->user()->institution,
             'svg' => $url ? $this->qr->svg($url) : null,
         ]);
     }

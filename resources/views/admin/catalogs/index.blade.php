@@ -1,8 +1,8 @@
 <x-layouts.app :title="$def['title']" :heading="$def['title']"
-                lead="Los registros no se eliminan: se desactivan para conservar el historial de los casos."
-                :breadcrumbs="['Catálogos' => route('admin.catalogos.home'), $def['title'] => null]">
+                lead="{{ $platform ? 'Registros globales: los ven todas las instituciones.' : 'Los registros globales los define la plataforma y son de solo lectura. Los registros no se eliminan: se desactivan.' }}"
+                :breadcrumbs="['Catálogos' => route($prefix.'.home'), $def['title'] => null]">
     <x-slot:actions>
-        <a href="{{ route('admin.catalogos.create', $def['key']) }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Nuevo registro</a>
+        <a href="{{ route($prefix.'.create', $def['key']) }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Nuevo registro</a>
     </x-slot:actions>
 
     <div class="card">
@@ -23,6 +23,7 @@
                         @foreach ($def['columns'] as $col => $label)
                             <th scope="col" @class(['d-none d-md-table-cell' => ! $loop->first])>{{ $label }}</th>
                         @endforeach
+                        <th scope="col">Ámbito</th>
                         <th scope="col">Estado</th>
                         <th scope="col" class="text-end"><span class="visually-hidden">Acciones</span></th>
                     </tr>
@@ -35,22 +36,28 @@
                                     {{ \Illuminate\Support\Str::limit(\App\Support\CatalogRegistry::display($item->{$col}), 80) }}
                                 </td>
                             @endforeach
+                            <td>@if ($item->isGlobal())<span class="badge text-bg-info">Global</span>@else<span class="badge text-bg-light">Institución</span>@endif</td>
                             <td>
                                 @if ($item->is_active)<span class="badge text-bg-success">Activo</span>@else<span class="badge text-bg-secondary">Inactivo</span>@endif
                             </td>
                             <td class="text-end text-nowrap">
-                                <a href="{{ route('admin.catalogos.edit', [$def['key'], $item->id]) }}" class="btn btn-sm btn-outline-primary">Editar<span class="visually-hidden"> {{ $item->name }}</span></a>
-                                <form method="POST" action="{{ route('admin.catalogos.toggle', [$def['key'], $item->id]) }}" class="d-inline"
-                                      data-confirm="{{ $item->is_active ? '¿Desactivar este registro? Dejará de aparecer en los formularios.' : '¿Activar este registro?' }}">
+                                @if ($platform ? $item->isGlobal() : $item->isOwnedBy($institutionId))
+                                <a href="{{ route($prefix.'.edit', [$def['key'], $item->id]) }}" class="btn btn-sm btn-outline-primary">Editar<span class="visually-hidden"> {{ $item->name }}</span></a>
+                                <form method="POST" action="{{ route($prefix.'.toggle', [$def['key'], $item->id]) }}" class="d-inline"
+                                      data-confirm="{{ $item->is_active ? 'Dejará de aparecer en los formularios. Los casos que ya lo usan no cambian.' : 'El registro volverá a aparecer en los formularios.' }}"
+                                      data-confirm-title="{{ $item->is_active ? 'Desactivar registro' : 'Activar registro' }}" data-confirm-ok="{{ $item->is_active ? 'Desactivar' : 'Activar' }}">
                                     @csrf @method('PATCH')
                                     <button type="submit" class="btn btn-sm {{ $item->is_active ? 'btn-outline-secondary' : 'btn-outline-success' }}">
                                         {{ $item->is_active ? 'Desactivar' : 'Activar' }}<span class="visually-hidden"> {{ $item->name }}</span>
                                     </button>
                                 </form>
+                                @else
+                                    <span class="small text-secondary"><i class="bi bi-lock" aria-hidden="true"></i> Solo lectura</span>
+                                @endif
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="{{ count($def['columns']) + 2 }}" class="text-center text-secondary py-5">No hay registros.</td></tr>
+                        <tr><td colspan="{{ count($def['columns']) + 3 }}"><x-empty icon="{{ $def['icon'] }}" title="No hay registros" text="Cree el primero con «Nuevo registro»." /></td></tr>
                     @endforelse
                 </tbody>
             </table>

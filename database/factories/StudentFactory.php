@@ -17,6 +17,7 @@ class StudentFactory extends Factory
     public function definition(): array
     {
         return [
+            'institution_id' => fn () => app(\App\Support\TenantContext::class)->id() ?? \App\Models\Institution::default()?->id,
             'institutional_code' => 'TEST-'.fake()->unique()->numerify('######'),
             'first_names' => 'Estudiante '.fake()->unique()->numerify('###'),
             'last_names' => 'Ficticio',

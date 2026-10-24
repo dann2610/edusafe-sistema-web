@@ -1,5 +1,7 @@
-@props(['icon' => 'bi-inbox', 'text'])
-<div class="text-center text-secondary py-5 px-3">
-    <i class="bi {{ $icon }} d-block mb-2" style="font-size:2rem" aria-hidden="true"></i>
-    {{ $text }}
+@props(['icon' => 'bi-inbox', 'title' => null, 'text' => null])
+<div {{ $attributes->merge(['class' => 'empty-state']) }} role="status">
+    <i class="bi {{ $icon }}" aria-hidden="true"></i>
+    @if ($title)<strong>{{ $title }}</strong>@endif
+    @if ($text)<span>{{ $text }}</span>@endif
+    @if (trim($slot) !== '')<div class="mt-3">{{ $slot }}</div>@endif
 </div>

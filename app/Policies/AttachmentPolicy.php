@@ -13,7 +13,12 @@ class AttachmentPolicy
 {
     public function download(User $user, Attachment $attachment): bool
     {
-        return $attachment->uploaded_by === $user->id
-            || $user->can('viewCase', $attachment->incident);
+        // incident se carga con el alcance de institución: si es de otra institución es null
+        $incident = $attachment->incident;
+        if (! $incident || $incident->institution_id !== $user->institution_id) {
+            return false;
+        }
+
+        return $attachment->uploaded_by === $user->id || $user->can('viewCase', $incident);
     }
 }

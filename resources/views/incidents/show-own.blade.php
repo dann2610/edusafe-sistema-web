@@ -3,21 +3,23 @@
     <div class="row g-3">
         <div class="col-lg-7">
             <div class="card mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Datos registrados</span><x-status-badge :status="$incident->status" />
+                <div class="card-header">
+                    <span class="me-auto">Datos registrados</span><x-status-badge :status="$incident->status" />
                 </div>
                 <div class="card-body">
                     <dl class="row kv mb-3">
                         <dt class="col-sm-4">Registrado</dt><dd class="col-sm-8">{{ $incident->created_at->format('d/m/Y H:i') }}</dd>
-                        <dt class="col-sm-4">Fecha del hecho</dt><dd class="col-sm-8">{{ $incident->occurred_at?->format('d/m/Y H:i') ?? 'No indicada' }} <span class="small text-secondary">(aproximada)</span></dd>
+                        <dt class="col-sm-4">Fecha del hecho</dt><dd class="col-sm-8">{{ $incident->occurredLabel() }} <span class="small text-secondary">(aproximada)</span></dd>
                         <dt class="col-sm-4">Lugar</dt><dd class="col-sm-8">{{ $incident->location ?? '—' }}</dd>
                         <dt class="col-sm-4">Curso</dt><dd class="col-sm-8">{{ $incident->course?->display_name ?? '—' }}</dd>
                         <dt class="col-sm-4">Riesgo inmediato</dt><dd class="col-sm-8">{{ $incident->immediate_risk ? 'Sí' : 'No' }}</dd>
+                        @include('cases.partials._report-details')
                     </dl>
                     <div class="fw-semibold small mb-1">Descripción</div>
                     <p class="description-text mb-0">{{ $incident->description }}</p>
                 </div>
             </div>
+            @include('cases.partials.notes', ['noteForm' => auth()->user()->can('addNote', $incident)])
             @if ($incident->participants->isNotEmpty())
                 <div class="card mb-3">
                     <div class="card-header">Personas involucradas registradas</div>

@@ -56,6 +56,7 @@ class DatabaseSchemaTest extends TestCase
     public function test_existen_todas_las_tablas_del_modelo(): void
     {
         foreach ([
+            'institutions', 'modules', 'institution_module', 'incident_category_fields', 'incident_notes',
             'users', 'roles', 'permissions', 'permission_role', 'sessions', 'password_reset_tokens',
             'academic_periods', 'courses', 'students', 'enrollments',
             'incident_categories', 'measure_types', 'follow_up_types', 'external_entities',
@@ -80,6 +81,7 @@ class DatabaseSchemaTest extends TestCase
     {
         $this->assertSame(0, User::count());
         $this->assertSame(0, DB::table('students')->count());
+        $this->assertSame(1, DB::table('institutions')->count());
     }
 
     public function test_el_administrador_tecnico_no_tiene_acceso_a_expedientes(): void
@@ -246,6 +248,7 @@ class DatabaseSchemaTest extends TestCase
     {
         $a = AcademicPeriod::create(['name' => 'P1', 'starts_on' => '2025-05-01', 'ends_on' => '2026-02-28']);
         $b = AcademicPeriod::create(['name' => 'P2', 'starts_on' => '2026-05-01', 'ends_on' => '2027-02-28']);
+        $this->assertNotNull($a->institution_id); // se asigna desde el contexto
         $a->markAsCurrent();
         $b->markAsCurrent();
 

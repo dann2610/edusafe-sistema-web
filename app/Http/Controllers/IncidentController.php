@@ -10,6 +10,8 @@ use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Incident;
 use App\Models\IncidentCategory;
+use App\Services\AttachmentStorage;
+use App\Services\CaseWorkflow;
 use App\Services\IncidentRegistrar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,7 +29,7 @@ class IncidentController extends Controller
         $current = AcademicPeriod::current();
 
         return view('incidents.create', [
-            'categories' => IncidentCategory::active()->ordered()->get(),
+            'categories' => IncidentCategory::active()->ordered()->with('activeFields')->get(),
             'courses' => $current
                 ? Course::where('academic_period_id', $current->id)->active()->orderBy('level')->orderBy('parallel')->get()->mapWithKeys(fn ($c) => [$c->id => $c->display_name])->all()
                 : [],
@@ -42,7 +44,7 @@ class IncidentController extends Controller
     {
         $incident = $registrar->registerInternal(
             $request->user(),
-            $request->safe()->except(['participants', 'attachments']),
+            $request->safe()->except(['participants', 'attachments']) + ['extra' => $request->validated('extra', [])],
             $request->validated('participants', []),
             $request->file('attachments', []),
         );
@@ -64,10 +66,26 @@ class IncidentController extends Controller
     {
         Gate::authorize('viewOwnReport', $incident);
 
-        $incident->load(['category', 'course', 'participants.student', 'attachments']);
+        $incident->load(['category', 'course', 'participants.student', 'attachments', 'notes.user']);
         $statusHistory = $incident->statusHistory()->get();
 
         return view('incidents.show-own', compact('incident', 'statusHistory'));
+    }
+
+    /** Quien registró el caso aporta información adicional (y archivos, si tiene permiso). */
+    public function addNote(Request $request, Incident $incident, CaseWorkflow $workflow): RedirectResponse
+    {
+        Gate::authorize('addNote', $incident);
+
+        $rules = ['body' => ['required', 'string', 'min:10', 'max:3000']];
+        if ($request->user()->can('adjuntos.subir')) {
+            $rules += AttachmentStorage::validationRules();
+        }
+        $data = $request->validate($rules, [], ['body' => 'la información adicional', 'attachments.*' => 'el archivo']);
+
+        $workflow->addNote($incident, $request->user(), $data['body'], $request->user()->can('adjuntos.subir') ? $request->file('attachments', []) : []);
+
+        return back()->with('success', 'Información enviada al DECE. Quedó registrada en el historial del caso.');
     }
 
     /** @return array<string, array<int, string>> curso => [id => nombre] */

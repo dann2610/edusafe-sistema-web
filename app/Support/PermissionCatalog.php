@@ -12,11 +12,17 @@ final class PermissionCatalog
 {
     /** slug => [nombre, módulo, roles] */
     public const MATRIX = [
-        // Administración técnica
-        'usuarios.gestionar' => ['Gestionar cuentas y roles', 'usuarios', ['administrador']],
-        'catalogos.gestionar' => ['Gestionar catálogos institucionales', 'catalogos', ['administrador']],
-        'configuracion.gestionar' => ['Gestionar configuración técnica y código QR', 'configuracion', ['administrador']],
-        'auditoria.consultar' => ['Consultar bitácora de auditoría', 'auditoria', ['administrador', 'autoridad']],
+        // Plataforma (superadministrador). No incluye acceso a expedientes.
+        'plataforma.instituciones' => ['Registrar y administrar instituciones educativas', 'plataforma', ['superadmin']],
+        'plataforma.modulos' => ['Administrar el catálogo de módulos', 'plataforma', ['superadmin']],
+        'plataforma.catalogos' => ['Administrar catálogos y categorías globales', 'plataforma', ['superadmin']],
+        'plataforma.estadisticas' => ['Consultar estadísticas generales agregadas', 'plataforma', ['superadmin']],
+
+        // Administración institucional
+        'usuarios.gestionar' => ['Gestionar cuentas y roles de la institución', 'usuarios', ['administrador']],
+        'catalogos.gestionar' => ['Gestionar catálogos y categorías locales', 'catalogos', ['administrador']],
+        'configuracion.gestionar' => ['Gestionar configuración, módulos y código QR de la institución', 'configuracion', ['administrador']],
+        'auditoria.consultar' => ['Consultar bitácora de auditoría', 'auditoria', ['superadmin', 'administrador', 'autoridad']],
 
         // Registro de incidentes
         'incidentes.registrar' => ['Registrar incidentes', 'incidentes', ['docente', 'dece', 'autoridad']],
