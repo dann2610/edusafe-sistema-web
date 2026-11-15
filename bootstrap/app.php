@@ -20,6 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Detrás del proxy HTTPS de Render
+        $middleware->trustProxies(at: '*');
+
         $middleware->web(prepend: [ResetRequestState::class], append: [SecurityHeaders::class]);
 
         $middleware->alias([
