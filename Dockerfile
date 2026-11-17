@@ -1,34 +1,42 @@
-FROM php:8.3-apache
+#!/bin/sh
+set -e
+cd /var/www/html
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        libpq-dev libzip-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev libicu-dev unzip git \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo_pgsql pgsql zip gd intl bcmath opcache \
-    && a2enmod rewrite headers \
-    && rm -rf /var/lib/apt/lists/*
+if [ -n "$APP_KEY" ] && [ "${APP_KEY#base64:}" = "$APP_KEY" ]; then
+    export APP_KEY="base64:$APP_KEY"
+fi
 
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+if [ -z "$APP_URL" ] && [ -n "$RENDER_EXTERNAL_URL" ]; then export APP_URL="$RENDER_EXTERNAL_URL"; fi
+if [ -z "$QR_URL_PUBLICA" ] && [ -n "$APP_URL" ]; then export QR_URL_PUBLICA="$APP_URL"; fi
 
-ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
-RUN sed -ri 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
-    && sed -ri 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf \
-    && printf '<Directory ${APACHE_DOCUMENT_ROOT}>\n    AllowOverride All\n    Require all granted\n</Directory>\n' > /etc/apache2/conf-available/laravel.conf \
-    && a2enconf laravel \
-    && printf "upload_max_filesize=20M\npost_max_size=25M\nmemory_limit=256M\n" > /usr/local/etc/php/conf.d/app.ini
+PORT="${PORT:-80}"
+sed -ri "s/^Listen .*/Listen ${PORT}/" /etc/apache2/ports.conf
+sed -ri "s/<VirtualHost \*:[0-9]+>/<VirtualHost *:${PORT}>/" /etc/apache2/sites-available/000-default.conf
 
-WORKDIR /var/www/html
+php artisan config:clear >/dev/null 2>&1 || true
 
-COPY composer.json composer.lock* ./
-RUN composer install --no-dev --no-scripts --no-autoloader --no-interaction --prefer-dist
+php artisan migrate --force
+php artisan db:seed --force
 
-COPY . .
-RUN composer dump-autoload --optimize --no-dev \
-    && php artisan package:discover --ansi \
-    && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
-    && chown -R www-data:www-data storage bootstrap/cache
+if [ "$CARGAR_DEMO" = "true" ]; then
+    EXISTE=$(php artisan tinker --execute="echo \App\Models\User::where('email','superadmin.demo@uecrc.test')->exists() ? 'si' : 'no';" 2>/dev/null | tail -n 1)
+    if [ "$EXISTE" != "si" ]; then
+        APP_ENV=local php artisan db:seed --class=DemoDataSeeder --force
+        APP_ENV=local php artisan db:seed --class=DemoIncidentsSeeder --force
+    fi
+fi
 
-COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN sed -i 's/\r$//' /usr/local/bin/entrypoint.sh && chmod +x /usr/local/bin/entrypoint.sh
+# Contraseña de los usuarios DEMO: se fija en cada arranque con DEMO_PASSWORD
+if [ "$CARGAR_DEMO" = "true" ] && [ -n "$DEMO_PASSWORD" ]; then
+    echo ">> Actualizando contraseña de usuarios DEMO"
+    php artisan tinker --execute="\App\Models\User::where('email','like','%.test')->get()->each(function (\$u) { \$u->password = getenv('DEMO_PASSWORD'); \$u->must_change_password = false; \$u->is_active = true; \$u->save(); }); echo 'ok';"
+fi
 
-EXPOSE 80
-ENTRYPOINT ["entrypoint.sh"]
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+chown -R www-data:www-data storage bootstrap/cache
+
+su -s /bin/sh www-data -c "php artisan schedule:work" >/dev/null 2>&1 &
+
+exec apache2-foreground
