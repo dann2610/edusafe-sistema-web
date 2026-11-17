@@ -20,16 +20,21 @@ php artisan db:seed --force
 
 if [ "$CARGAR_DEMO" = "true" ]; then
     EXISTE=$(php artisan tinker --execute="echo \App\Models\User::where('email','superadmin.demo@uecrc.test')->exists() ? 'si' : 'no';" 2>/dev/null | tail -n 1)
-    if [ "$EXISTE" != "si" ]; then
-        APP_ENV=local php artisan db:seed --class=DemoDataSeeder --force
-        APP_ENV=local php artisan db:seed --class=DemoIncidentsSeeder --force
-    fi
-fi
 
-# Contraseña de los usuarios DEMO: se fija en cada arranque con DEMO_PASSWORD
-if [ "$CARGAR_DEMO" = "true" ] && [ -n "$DEMO_PASSWORD" ]; then
-    echo ">> Actualizando contraseña de usuarios DEMO"
-    php artisan tinker --execute="\App\Models\User::where('email','like','%.test')->get()->each(function (\$u) { \$u->password = getenv('DEMO_PASSWORD'); \$u->must_change_password = false; \$u->is_active = true; \$u->save(); }); echo 'ok';" || echo ">> No se pudo actualizar la contraseña DEMO"
+    # Crea los usuarios DEMO que falten (los existentes no se duplican)
+    echo ">> Revisando usuarios DEMO"
+    APP_ENV=local php artisan db:seed --class=DemoDataSeeder --force || echo ">> Fallo DemoDataSeeder"
+
+    # Casos de ejemplo: solo la primera vez
+    if [ "$EXISTE" != "si" ]; then
+        APP_ENV=local php artisan db:seed --class=DemoIncidentsSeeder --force || echo ">> Fallo DemoIncidentsSeeder"
+    fi
+
+    # Misma contraseña (DEMO_PASSWORD) para todos los usuarios DEMO
+    php docker/demo-passwords.php || echo ">> Fallo demo-passwords.php"
+
+    # Quita bloqueos por intentos fallidos
+    php artisan cache:clear || true
 fi
 
 php artisan config:cache
