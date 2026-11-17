@@ -26,6 +26,12 @@ if [ "$CARGAR_DEMO" = "true" ]; then
     fi
 fi
 
+# Contraseña de los usuarios DEMO: se fija en cada arranque con DEMO_PASSWORD
+if [ "$CARGAR_DEMO" = "true" ] && [ -n "$DEMO_PASSWORD" ]; then
+    echo ">> Actualizando contraseña de usuarios DEMO"
+    php artisan tinker --execute="\App\Models\User::where('email','like','%.test')->get()->each(function (\$u) { \$u->password = getenv('DEMO_PASSWORD'); \$u->must_change_password = false; \$u->is_active = true; \$u->save(); }); echo 'ok';" || echo ">> No se pudo actualizar la contraseña DEMO"
+fi
+
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
